@@ -3,18 +3,11 @@ name: Web Build and Push
 on:
   push:
     branches:
-      - frontend-*
-      - admin-*
-      - app-*
+      - main
     tags:
       - "admin-v[0-9]+.[0-9]+.[0-9]+*"
       - "app-v[0-9]+.[0-9]+.[0-9]+*"
       - "v[0-9]+.[0-9]+.[0-9]+*"
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'web/**'
 
 jobs:
   build:
