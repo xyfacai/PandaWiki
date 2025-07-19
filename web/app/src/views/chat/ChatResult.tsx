@@ -194,7 +194,7 @@ const ChatResult = ({
                   mt: 2,
                 }}
               >
-                本答案由 PandaWiki 生成于 {dayjs(item.update_time).fromNow()}
+                生成于 {dayjs(item.update_time).fromNow()}
                 {item.score === 1 && <IconZaned sx={{ cursor: 'pointer' }} />}
                 {item.score !== 1 && (
                   <IconZan
