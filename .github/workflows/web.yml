@@ -2,8 +2,6 @@ name: Web Build and Push
 
 on:
   push:
-    branches:
-      - main
     tags:
       - "admin-v[0-9]+.[0-9]+.[0-9]+*"
       - "app-v[0-9]+.[0-9]+.[0-9]+*"
