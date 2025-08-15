@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
         ...[
           {
             source: '/static-file/:path*',
-            destination: `${process.env.TARGET}/static-file/:path*`,
+            destination: `${process.env.STATIC_FILE_TARGET}/static-file/:path*`,
             basePath: false as const,
           },
           {
@@ -25,7 +25,7 @@ const nextConfig: NextConfig = {
             destination: `${process.env.TARGET}/share/v1/:path*`,
             basePath: false as const,
           },
-        ]
+        ],
       );
     }
     return rewritesPath;

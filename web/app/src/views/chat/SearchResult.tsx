@@ -34,7 +34,7 @@ const SearchResult = ({
         }),
       }}
     >
-      {list.map((item) => (
+      {list.map(item => (
         <Box
           key={item.node_id}
           sx={{
@@ -48,7 +48,7 @@ const SearchResult = ({
               alignItems='center'
               gap={3}
               justifyContent='space-between'
-              sx={(theme) => ({
+              sx={theme => ({
                 borderRadius: '10px',
                 py: '14px',
                 cursor: 'pointer',
@@ -91,7 +91,7 @@ const SearchResult = ({
         <Box sx={{ mt: 1 }}>
           <Stack
             sx={{
-              bgcolor: 'background.paper',
+              bgcolor: 'background.paper2',
               borderRadius: '10px',
               px: 2,
               py: 1,

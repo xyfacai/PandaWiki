@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	MaxPosition float64 = 1e38
+	MaxPosition    float64 = 1e38
+	MinPositionGap float64 = 1e-5
 )
 
 type NodeType uint16
@@ -84,6 +85,10 @@ type CreateNodeReq struct {
 
 	Emoji      string          `json:"emoji"`
 	Visibility *NodeVisibility `json:"visibility"`
+
+	MaxNode int `json:"-"`
+
+	Position *float64 `json:"position"`
 }
 
 type GetNodeListReq struct {
@@ -181,6 +186,7 @@ type UpdateNodeReq struct {
 	Emoji      *string         `json:"emoji"`
 	Visibility *NodeVisibility `json:"visibility"`
 	Summary    *string         `json:"summary"`
+	Position   *float64        `json:"position"`
 }
 
 type ShareNodeListItemResp struct {
@@ -239,31 +245,4 @@ type BatchMoveReq struct {
 	IDs      []string `json:"ids" validate:"required"`
 	KBID     string   `json:"kb_id" validate:"required"`
 	ParentID string   `json:"parent_id"`
-}
-
-type NodeReleaseListItem struct {
-	ID        string    `json:"id"`
-	NodeID    string    `json:"node_id"`
-	Name      string    `json:"name"`
-	Meta      NodeMeta  `json:"meta"`
-	UpdatedAt time.Time `json:"updated_at"`
-	// release
-	ReleaseID      string `json:"release_id"`
-	ReleaseTag     string `json:"release_name" gorm:"-"`
-	ReleaseMessage string `json:"release_message" gorm:"-"`
-}
-
-type GetNodeReleaseListReq struct {
-	KBID   string `json:"kb_id" validate:"required" query:"kb_id"`
-	NodeID string `json:"node_id" validate:"required" query:"node_id"`
-}
-
-type GetNodeReleaseDetailReq struct {
-	ID string `json:"id" validate:"required" query:"id"`
-}
-
-type GetNodeReleaseDetailResp struct {
-	Name    string   `json:"name"`
-	Meta    NodeMeta `json:"meta"`
-	Content string   `json:"content"`
 }

@@ -92,10 +92,9 @@ const Home = () => {
         sx={{
           pt: 10,
           pb: 5,
-          backgroundImage: `url(${
-            themeAndStyleSetting?.bg_image ||
+          backgroundImage: `url(${themeAndStyleSetting?.bg_image ||
             (themeMode === 'dark' ? DarkBG.src : LightBG.src)
-          })`,
+            })`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
@@ -144,7 +143,7 @@ const Home = () => {
                 pr: '18px',
                 bgcolor:
                   themeMode === 'dark'
-                    ? 'background.paper'
+                    ? 'background.paper2'
                     : 'background.default',
                 '& fieldset': {
                   borderRadius: '10px',
@@ -156,7 +155,7 @@ const Home = () => {
             placeholder={kbDetail?.settings?.search_placeholder || '开始搜索'}
             autoComplete='off'
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={e => setSearchText(e.target.value)}
             onKeyDown={handleKeyDown}
             InputProps={{
               endAdornment: (

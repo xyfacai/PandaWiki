@@ -18,6 +18,7 @@ const (
 	AppTypeWechatBot
 	AppTypeWechatServiceBot
 	AppTypeDisCordBot
+	AppTypeWechatOfficialAccount
 )
 
 var AppTypes = []AppType{
@@ -28,6 +29,7 @@ var AppTypes = []AppType{
 	AppTypeWechatBot,
 	AppTypeWechatServiceBot,
 	AppTypeDisCordBot,
+	AppTypeWechatOfficialAccount,
 }
 
 type App struct {
@@ -84,6 +86,13 @@ type AppSettings struct {
 	// DisCordBot
 	DiscordBotIsEnabled *bool  `json:"discord_bot_is_enabled,omitempty"`
 	DiscordBotToken     string `json:"discord_bot_token,omitempty"`
+	// WechatOfficialAccount
+	WechatOfficialAccountIsEnabled      *bool  `json:"wechat_official_account_is_enabled,omitempty"`
+	WechatOfficialAccountAppID          string `json:"wechat_official_account_app_id,omitempty"`
+	WechatOfficialAccountAppSecret      string `json:"wechat_official_account_app_secret,omitempty"`
+	WechatOfficialAccountToken          string `json:"wechat_official_account_token,omitempty"`
+	WechatOfficialAccountEncodingAESKey string `json:"wechat_official_account_encodingaeskey,omitempty"`
+
 	// theme
 	ThemeMode     string        `json:"theme_mode,omitempty"`
 	ThemeAndStyle ThemeAndStyle `json:"theme_and_style"`
@@ -95,11 +104,20 @@ type AppSettings struct {
 	WidgetBotSettings WidgetBotSettings `json:"widget_bot_settings"`
 	// webapp comment settings
 	WebAppCommentSettings WebAppCommentSettings `json:"web_app_comment_settings"`
+	// document feedback
+	DocumentFeedBackIsEnabled *bool `json:"document_feedback_is_enabled,omitempty"`
+	// AI feedback
+	AIFeedbackSettings AIFeedbackSettings `json:"ai_feedback_settings"`
 }
 
 type WebAppCommentSettings struct {
 	IsEnable         bool `json:"is_enable"`
 	ModerationEnable bool `json:"moderation_enable"`
+}
+
+type AIFeedbackSettings struct {
+	AIFeedbackIsEnabled *bool    `json:"is_enabled"`
+	AIFeedbackType      []string `json:"ai_feedback_type"`
 }
 
 type ThemeAndStyle struct {
@@ -205,6 +223,12 @@ type AppSettingsResp struct {
 	// DisCordBot
 	DiscordBotIsEnabled *bool  `json:"discord_bot_is_enabled,omitempty"`
 	DiscordBotToken     string `json:"discord_bot_token,omitempty"`
+	// WechatOfficialAccount
+	WechatOfficialAccountIsEnabled      *bool  `json:"wechat_official_account_is_enabled,omitempty"`
+	WechatOfficialAccountAppID          string `json:"wechat_official_account_app_id,omitempty"`
+	WechatOfficialAccountAppSecret      string `json:"wechat_official_account_app_secret,omitempty"`
+	WechatOfficialAccountToken          string `json:"wechat_official_account_token,omitempty"`
+	WechatOfficialAccountEncodingAESKey string `json:"wechat_official_account_encodingaeskey,omitempty"`
 	// theme
 	ThemeMode     string        `json:"theme_mode,omitempty"`
 	ThemeAndStyle ThemeAndStyle `json:"theme_and_style"`
@@ -216,6 +240,10 @@ type AppSettingsResp struct {
 	WidgetBotSettings WidgetBotSettings `json:"widget_bot_settings"`
 	// webapp comment settings
 	WebAppCommentSettings WebAppCommentSettings `json:"web_app_comment_settings"`
+	// document feedback
+	DocumentFeedBackIsEnabled *bool `json:"document_feedback_is_enabled,omitempty"`
+	// AI feedback
+	AIFeedbackSettings AIFeedbackSettings `json:"ai_feedback_settings,omitempty"`
 }
 
 func (s *AppSettingsResp) Scan(value any) error {
@@ -237,7 +265,7 @@ type UpdateAppReq struct {
 
 type CreateAppReq struct {
 	Name string  `json:"name"`
-	Type AppType `json:"type" validate:"required,oneof=1 2 3 4 5"`
+	Type AppType `json:"type" validate:"required,oneof=1 2 3 4 5 6 7 8"`
 	Icon string  `json:"icon"`
 	KBID string  `json:"kb_id" validate:"required"`
 }

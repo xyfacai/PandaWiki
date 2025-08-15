@@ -29,16 +29,19 @@ export enum DomainScoreType {
   DisLike = -1,
 }
 
+/** @format int32 */
 export enum DomainNodeVisibility {
   NodeVisibilityPrivate = 1,
   NodeVisibilityPublic = 2,
 }
 
+/** @format int32 */
 export enum DomainNodeType {
   NodeTypeFolder = 1,
   NodeTypeDocument = 2,
 }
 
+/** @format int32 */
 export enum DomainNodeStatus {
   NodeStatusDraft = 1,
   NodeStatusReleased = 2,
@@ -51,6 +54,7 @@ export enum DomainModelType {
 }
 
 export enum DomainModelProvider {
+  /** 智谱 */
   ModelProviderBrandOpenAI = "OpenAI",
   ModelProviderBrandOllama = "Ollama",
   ModelProviderBrandDeepSeek = "DeepSeek",
@@ -62,6 +66,7 @@ export enum DomainModelProvider {
   ModelProviderBrandBaiLian = "BaiLian",
   ModelProviderBrandVolcengine = "Volcengine",
   ModelProviderBrandGemini = "Gemini",
+  ModelProviderBrandZhiPu = "ZhiPu",
   ModelProviderBrandOther = "Other",
 }
 
@@ -70,12 +75,23 @@ export enum DomainMessageFrom {
   MessageFromPrivate = 2,
 }
 
-export enum DomainFeedbackType {
-  ContentErr = 1,
-  NoHelp = 2,
-  Other = 3,
+/** @format int32 */
+export enum DomainCommentStatus {
+  CommentStatusReject = -1,
+  CommentStatusPending = 0,
+  CommentStatusAccepted = 1,
 }
 
+export enum DomainAuthType {
+  /** 无认证 */
+  AuthTypeNull = "",
+  /** 简单口令 */
+  AuthTypeSimple = "simple",
+  /** 企业认证 */
+  AuthTypeEnterprise = "enterprise",
+}
+
+/** @format int32 */
 export enum DomainAppType {
   AppTypeWeb = 1,
   AppTypeWidget = 2,
@@ -84,15 +100,53 @@ export enum DomainAppType {
   AppTypeWechatBot = 5,
   AppTypeWechatServiceBot = 6,
   AppTypeDisCordBot = 7,
+  AppTypeWechatOfficialAccount = 8,
+}
+
+export enum ConstsUserRole {
+  /** 管理员 */
+  UserRoleAdmin = "admin",
+  /** 普通用户 */
+  UserRoleUser = "user",
+}
+
+export enum ConstsUserKBPermission {
+  /** 无权限 */
+  UserKBPermissionNull = "",
+  /** 完全控制 */
+  UserKBPermissionFullControl = "full_control",
+  /** 文档管理 */
+  UserKBPermissionDocManage = "doc_manage",
+  /** 数据运营 */
+  UserKBPermissionDataOperate = "data_operate",
+}
+
+export enum ConstsSourceType {
+  SourceTypeDingTalk = "dingtalk",
+  SourceTypeFeishu = "feishu",
+  SourceTypeWeCom = "wecom",
+  SourceTypeOAuth = "oauth",
+  SourceTypeCAS = "cas",
+  SourceTypeLDAP = "ldap",
+}
+
+export interface DomainAIFeedbackSettings {
+  ai_feedback_type?: string[];
+  is_enabled?: boolean;
 }
 
 export interface DomainAccessSettings {
   base_url?: string;
+  enterprise_auth?: DomainEnterpriseAuth;
   hosts?: string[];
+  /** 禁止访问 */
+  is_forbidden?: boolean;
   ports?: number[];
   private_key?: string;
   public_key?: string;
   simple_auth?: DomainSimpleAuth;
+  /** 企业认证来源 */
+  source_type?: ConstsSourceType;
   ssl_ports?: number[];
   trusted_proxies?: string[];
 }
@@ -113,6 +167,8 @@ export interface DomainAppDetailResp {
 }
 
 export interface DomainAppSettings {
+  /** AI feedback */
+  ai_feedback_settings?: DomainAIFeedbackSettings;
   auto_sitemap?: boolean;
   body_code?: string;
   btns?: unknown[];
@@ -128,6 +184,8 @@ export interface DomainAppSettings {
   /** DisCordBot */
   discord_bot_is_enabled?: boolean;
   discord_bot_token?: string;
+  /** document feedback */
+  document_feedback_is_enabled?: boolean;
   feishu_bot_app_id?: string;
   feishu_bot_app_secret?: string;
   /** FeishuBot */
@@ -155,6 +213,12 @@ export interface DomainAppSettings {
   wechat_app_is_enabled?: boolean;
   wechat_app_secret?: string;
   wechat_app_token?: string;
+  wechat_official_account_app_id?: string;
+  wechat_official_account_app_secret?: string;
+  wechat_official_account_encodingaeskey?: string;
+  /** WechatOfficialAccount */
+  wechat_official_account_is_enabled?: boolean;
+  wechat_official_account_token?: string;
   wechat_service_corpid?: string;
   wechat_service_encodingaeskey?: string;
   /** WechatServiceBot */
@@ -168,6 +232,8 @@ export interface DomainAppSettings {
 }
 
 export interface DomainAppSettingsResp {
+  /** AI feedback */
+  ai_feedback_settings?: DomainAIFeedbackSettings;
   auto_sitemap?: boolean;
   body_code?: string;
   btns?: unknown[];
@@ -183,6 +249,8 @@ export interface DomainAppSettingsResp {
   /** DisCordBot */
   discord_bot_is_enabled?: boolean;
   discord_bot_token?: string;
+  /** document feedback */
+  document_feedback_is_enabled?: boolean;
   feishu_bot_app_id?: string;
   feishu_bot_app_secret?: string;
   /** FeishuBot */
@@ -210,6 +278,12 @@ export interface DomainAppSettingsResp {
   wechat_app_is_enabled?: boolean;
   wechat_app_secret?: string;
   wechat_app_token?: string;
+  wechat_official_account_app_id?: string;
+  wechat_official_account_app_secret?: string;
+  wechat_official_account_encodingaeskey?: string;
+  /** WechatOfficialAccount */
+  wechat_official_account_is_enabled?: boolean;
+  wechat_official_account_token?: string;
   wechat_service_corpid?: string;
   wechat_service_encodingaeskey?: string;
   /** WechatServiceBot */
@@ -220,6 +294,15 @@ export interface DomainAppSettingsResp {
   welcome_str?: string;
   /** WidgetBot */
   widget_bot_settings?: DomainWidgetBotSettings;
+}
+
+export interface DomainAuthGetResp {
+  auth_type?: DomainAuthType;
+  source_type?: ConstsSourceType;
+}
+
+export interface DomainAuthLoginSimpleReq {
+  password: string;
 }
 
 export interface DomainBatchMoveReq {
@@ -268,7 +351,8 @@ export interface DomainCheckModelReq {
     | "Hunyuan"
     | "BaiLian"
     | "Volcengine"
-    | "Gemini";
+    | "Gemini"
+    | "ZhiPu";
   type: "chat" | "embedding" | "rerank";
 }
 
@@ -294,6 +378,8 @@ export interface DomainCommentListItem {
   node_name?: string;
   node_type?: number;
   root_id?: string;
+  /** status : -1 reject 0 pending 1 accept */
+  status?: DomainCommentStatus;
 }
 
 export interface DomainCommentReq {
@@ -415,7 +501,8 @@ export interface DomainCreateModelReq {
     | "Hunyuan"
     | "BaiLian"
     | "Volcengine"
-    | "Gemini";
+    | "Gemini"
+    | "ZhiPu";
   type: "chat" | "embedding" | "rerank";
 }
 
@@ -425,18 +512,13 @@ export interface DomainCreateNodeReq {
   kb_id: string;
   name: string;
   parent_id?: string;
+  position?: number;
   type: 1 | 2;
   visibility?: DomainNodeVisibility;
 }
 
-export interface DomainCreateUserReq {
-  account: string;
-  /** @minLength 8 */
-  password: string;
-}
-
-export interface DomainDeleteUserReq {
-  user_id: string;
+export interface DomainEnterpriseAuth {
+  enabled?: boolean;
 }
 
 export interface DomainEpubResp {
@@ -446,7 +528,7 @@ export interface DomainEpubResp {
 
 export interface DomainFeedBackInfo {
   feedback_content?: string;
-  feedback_type?: DomainFeedbackType;
+  feedback_type?: string;
   score?: DomainScoreType;
 }
 
@@ -460,8 +542,8 @@ export interface DomainFeedbackRequest {
   message_id: string;
   /** -1 踩 ,0 1 赞成 */
   score?: DomainScoreType;
-  /** 1 内容不准确，2 没有帮助，3 其他 */
-  type?: DomainFeedbackType;
+  /** 内容不准确，没有帮助，....... */
+  type?: string;
 }
 
 export interface DomainFooterSettings {
@@ -496,12 +578,6 @@ export interface DomainGetDocxResp {
 export interface DomainGetKBReleaseListResp {
   data?: DomainKBReleaseListItemResp[];
   total?: number;
-}
-
-export interface DomainGetNodeReleaseDetailResp {
-  content?: string;
-  meta?: DomainNodeMeta;
-  name?: string;
 }
 
 export interface DomainGetProviderModelListResp {
@@ -540,6 +616,8 @@ export interface DomainKnowledgeBaseDetail {
   dataset_id?: string;
   id?: string;
   name?: string;
+  /** 用户对知识库的权限 */
+  perm?: ConstsUserKBPermission;
   updated_at?: string;
 }
 
@@ -555,15 +633,6 @@ export interface DomainKnowledgeBaseListItem {
 export interface DomainLink {
   name?: string;
   url?: string;
-}
-
-export interface DomainLoginReq {
-  account: string;
-  password: string;
-}
-
-export interface DomainLoginResp {
-  token?: string;
 }
 
 export interface DomainModelDetailResp {
@@ -644,18 +713,6 @@ export interface DomainNodeMeta {
   summary?: string;
 }
 
-export interface DomainNodeReleaseListItem {
-  id?: string;
-  meta?: DomainNodeMeta;
-  name?: string;
-  node_id?: string;
-  /** release */
-  release_id?: string;
-  release_message?: string;
-  release_name?: string;
-  updated_at?: string;
-}
-
 export interface DomainNodeSummaryReq {
   ids: string[];
   kb_id: string;
@@ -680,6 +737,11 @@ export interface DomainPage {
 export interface DomainPageInfo {
   id?: string;
   title?: string;
+}
+
+export interface DomainPaginatedResultArrayDomainConversationMessageListItem {
+  data?: DomainConversationMessageListItem[];
+  total?: number;
 }
 
 export interface DomainParseURLItem {
@@ -710,12 +772,6 @@ export interface DomainRecommendNodeListResp {
   recommend_nodes?: DomainRecommendNodeListResp[];
   summary?: string;
   type?: DomainNodeType;
-}
-
-export interface DomainResetPasswordReq {
-  id: string;
-  /** @minLength 8 */
-  new_password: string;
 }
 
 export interface DomainResponse {
@@ -776,6 +832,25 @@ export interface DomainShareCommentListItem {
   root_id?: string;
 }
 
+export interface DomainShareConversationDetailResp {
+  created_at?: string;
+  id?: string;
+  messages?: DomainShareConversationMessage[];
+  subject?: string;
+}
+
+export interface DomainShareConversationMessage {
+  content?: string;
+  created_at?: string;
+  role?: SchemaRoleType;
+}
+
+export interface DomainSiYuanResp {
+  content?: string;
+  id?: number;
+  title?: string;
+}
+
 export interface DomainSimpleAuth {
   enabled?: boolean;
   password?: string;
@@ -833,7 +908,8 @@ export interface DomainUpdateModelReq {
     | "Hunyuan"
     | "BaiLian"
     | "Volcengine"
-    | "Gemini";
+    | "Gemini"
+    | "ZhiPu";
   type: "chat" | "embedding" | "rerank";
 }
 
@@ -843,11 +919,13 @@ export interface DomainUpdateNodeReq {
   id: string;
   kb_id: string;
   name?: string;
+  position?: number;
   summary?: string;
   visibility?: DomainNodeVisibility;
 }
 
 export interface DomainUserInfo {
+  auth_user_id?: number;
   /** avatar */
   avatar?: string;
   email?: string;
@@ -855,19 +933,6 @@ export interface DomainUserInfo {
   name?: string;
   real_name?: string;
   user_id?: string;
-}
-
-export interface DomainUserInfoResp {
-  account?: string;
-  created_at?: string;
-  id?: string;
-  last_access?: string;
-}
-
-export interface DomainUserListItemResp {
-  account?: string;
-  id?: string;
-  last_access?: string;
 }
 
 export interface DomainWebAppCommentSettings {
@@ -888,24 +953,89 @@ export interface DomainWikiJSResp {
   title?: string;
 }
 
-export interface GithubComChaitinPandaWikiDomainPaginatedResultArrayDomainConversationMessageListItem {
-  data?: DomainConversationMessageListItem[];
-  total?: number;
+export interface DomainYuqueResp {
+  content?: string;
+  title?: string;
 }
 
-export interface HandlerShareShareCommentLists {
+export interface ShareShareCommentLists {
   data?: DomainShareCommentListItem[];
   total?: number;
 }
 
-export interface HandlerV1CommentLists {
+export interface V1CommentLists {
   data?: DomainCommentListItem[];
   total?: number;
 }
 
-export interface HandlerV1ConversationListItems {
+export interface V1ConversationListItems {
   data?: DomainConversationListItem[];
   total?: number;
+}
+
+export interface V1CreateUserReq {
+  account: string;
+  /** @minLength 8 */
+  password: string;
+  role: "admin" | "user";
+}
+
+export interface V1DeleteUserReq {
+  user_id: string;
+}
+
+export interface V1KBUserInviteReq {
+  kb_id: string;
+  perm: "full_control" | "doc_manage" | "data_operate";
+  user_id: string;
+}
+
+export interface V1KBUserListItemResp {
+  account?: string;
+  id?: string;
+  perms?: ConstsUserKBPermission;
+  role?: ConstsUserRole;
+}
+
+export interface V1KBUserUpdateReq {
+  kb_id: string;
+  perm: "full_control" | "doc_manage" | "data_operate";
+  user_id: string;
+}
+
+export interface V1LoginReq {
+  account: string;
+  password: string;
+}
+
+export interface V1LoginResp {
+  token?: string;
+}
+
+export interface V1ResetPasswordReq {
+  id: string;
+  /** @minLength 8 */
+  new_password: string;
+}
+
+export interface V1UserInfoResp {
+  account?: string;
+  created_at?: string;
+  id?: string;
+  last_access?: string;
+  role?: ConstsUserRole;
+}
+
+export interface V1UserListItemResp {
+  account?: string;
+  created_at?: string;
+  id?: string;
+  last_access?: string;
+  role?: ConstsUserRole;
+}
+
+export interface V1UserListResp {
+  users?: V1UserListItemResp[];
 }
 
 export interface DeleteApiV1AppParams {
@@ -926,6 +1056,8 @@ export interface GetApiV1CommentParams {
   page: number;
   /** @min 1 */
   per_page: number;
+  /** @format int32 */
+  status?: -1 | 0 | 1;
 }
 
 export interface DeleteApiV1CommentListParams {
@@ -944,13 +1076,13 @@ export interface GetApiV1ConversationParams {
 }
 
 export interface GetApiV1ConversationDetailParams {
-  /** conversation id */
   id: string;
+  kb_id: string;
 }
 
 export interface GetApiV1ConversationMessageDetailParams {
-  /** message id */
   id: string;
+  kb_id: string;
 }
 
 export interface GetApiV1ConversationMessageListParams {
@@ -981,7 +1113,27 @@ export interface PostApiV1CrawlerEpubConvertPayload {
   kb_id: string;
 }
 
+export interface PostApiV1CrawlerSiyuanAnalysisExportFilePayload {
+  /**
+   * file
+   * @format binary
+   */
+  file: File;
+  /** kb_id */
+  kb_id: string;
+}
+
 export interface PostApiV1CrawlerWikijsAnalysisExportFilePayload {
+  /**
+   * file
+   * @format binary
+   */
+  file: File;
+  /** kb_id */
+  kb_id: string;
+}
+
+export interface PostApiV1CrawlerYuqueAnalysisExportFilePayload {
   /**
    * file
    * @format binary
@@ -1016,6 +1168,16 @@ export interface GetApiV1KnowledgeBaseReleaseListParams {
   kb_id: string;
 }
 
+export interface DeleteApiV1KnowledgeBaseUserDeleteParams {
+  kb_id: string;
+  user_id: string;
+}
+
+export interface GetApiV1KnowledgeBaseUserListParams {
+  /** Knowledge Base ID */
+  kb_id: string;
+}
+
 export interface GetApiV1ModelDetailParams {
   /** model id */
   id: string;
@@ -1036,13 +1198,14 @@ export interface GetApiV1ModelProviderSupportedParams {
     | "Hunyuan"
     | "BaiLian"
     | "Volcengine"
-    | "Gemini";
+    | "Gemini"
+    | "ZhiPu";
   type: "chat" | "embedding" | "rerank";
 }
 
 export interface GetApiV1NodeDetailParams {
-  /** ID */
   id: string;
+  kb_id: string;
 }
 
 export interface GetApiV1NodeListParams {
@@ -1053,15 +1216,6 @@ export interface GetApiV1NodeListParams {
 export interface GetApiV1NodeRecommendNodesParams {
   kb_id: string;
   node_ids: string[];
-}
-
-export interface GetApiV1NodeReleaseDetailParams {
-  id: string;
-}
-
-export interface GetApiV1NodeReleaseListParams {
-  kb_id: string;
-  node_id: string;
 }
 
 export interface GetApiV1StatBrowsersParams {
@@ -1116,6 +1270,11 @@ export interface PostShareV1ChatWidgetParams {
 
 export interface GetShareV1CommentListParams {
   /** nodeID */
+  id: string;
+}
+
+export interface GetShareV1ConversationDetailParams {
+  /** conversation id */
   id: string;
 }
 

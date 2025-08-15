@@ -3,6 +3,8 @@ package pg
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -39,7 +41,7 @@ func (r *NodeRepository) Create(ctx context.Context, req *domain.CreateNodeReq) 
 			Count(&count).Error; err != nil {
 			return err
 		}
-		if count >= 300 {
+		if count >= int64(req.MaxNode) {
 			return errors.New("node is too many")
 		}
 		var maxPos float64
@@ -59,7 +61,20 @@ func (r *NodeRepository) Create(ctx context.Context, req *domain.CreateNodeReq) 
 			return err
 		}
 
-		newPos := maxPos + (domain.MaxPosition-maxPos)/2.0
+		var newPos float64
+		if req.Position != nil { // user specify position
+			if *req.Position > domain.MaxPosition || *req.Position < 0 {
+				return errors.New("user specify position out of range")
+			}
+			newPos = *req.Position
+		} else { // default the last
+			newPos = maxPos + (domain.MaxPosition-maxPos)/2.0
+			if newPos-maxPos < domain.MinPositionGap {
+				if err := r.reorderPositionsByParentID(tx, req.KBID, req.ParentID); err != nil {
+					return err
+				}
+			}
+		}
 
 		now := time.Now()
 
@@ -136,61 +151,102 @@ func (r *NodeRepository) GetLatestNodeReleaseByNodeIDs(ctx context.Context, kbID
 }
 
 func (r *NodeRepository) UpdateNodeContent(ctx context.Context, req *domain.UpdateNodeReq) error {
-	updateMap := map[string]any{}
-	updateStatus := false
-	if req.Name != nil {
-		updateMap["name"] = *req.Name
-		updateStatus = true
-	}
-	if req.Content != nil {
-		updateMap["content"] = *req.Content
-		updateStatus = true
-	}
-
-	// Handle multiple meta field updates
-	if req.Emoji != nil || req.Summary != nil {
-		metaExpr := "meta"
-		var args []interface{}
-
-		if req.Emoji != nil {
-			// First jsonb_set: jsonb_set(meta, '{emoji}', to_jsonb(?::text))
-			metaExpr = "jsonb_set(" + metaExpr + ", '{emoji}', to_jsonb(?::text))"
-			args = append(args, *req.Emoji) // First parameter for emoji
-			updateStatus = true
-		}
-
-		if req.Summary != nil {
-			// Second jsonb_set: jsonb_set(previous_expr, '{summary}', to_jsonb(?::text))
-			metaExpr = "jsonb_set(" + metaExpr + ", '{summary}', to_jsonb(?::text))"
-			args = append(args, *req.Summary) // Second parameter for summary
-			updateStatus = true
-		}
-
-		updateMap["meta"] = gorm.Expr(metaExpr, args...)
-	}
-
-	if req.Visibility != nil {
-		updateMap["visibility"] = *req.Visibility
-		updateStatus = true
-	}
-	if updateStatus {
-		updateMap["status"] = domain.NodeStatusDraft
-	}
-	if len(updateMap) > 0 {
-		return r.db.WithContext(ctx).
-			Model(&domain.Node{}).
+	// Use transaction to ensure data consistency
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Get current node data with row-level lock
+		var currentNode domain.Node
+		if err := tx.Model(&domain.Node{}).
 			Where("id = ?", req.ID).
 			Where("kb_id = ?", req.KBID).
-			Updates(updateMap).Error
-	}
-	return nil
+			// Use FOR UPDATE to lock the row until the transaction is complete
+			Clauses(clause.Locking{Strength: "UPDATE"}).
+			First(&currentNode).Error; err != nil {
+			return err
+		}
+
+		updateMap := make(map[string]any)
+		updateStatus := false
+
+		// Compare and update Name
+		if req.Name != nil && *req.Name != currentNode.Name {
+			updateMap["name"] = *req.Name
+			updateStatus = true
+		}
+
+		// Compare and update Content
+		if req.Content != nil && *req.Content != currentNode.Content {
+			updateMap["content"] = *req.Content
+			updateStatus = true
+		}
+
+		if req.Position != nil && *req.Position != currentNode.Position { // user specify position
+			updateMap["position"] = *req.Position
+			if *req.Position > domain.MaxPosition || *req.Position < 0 {
+				return errors.New("user specify position out of range")
+			}
+			updateStatus = true
+		}
+
+		// Handle multiple meta field updates
+		if req.Emoji != nil || req.Summary != nil {
+			metaExpr := "meta"
+			var args []any
+			metaUpdated := false
+
+			// Compare and update Emoji
+			if req.Emoji != nil && *req.Emoji != currentNode.Meta.Emoji {
+				// First jsonb_set: jsonb_set(meta, '{emoji}', to_jsonb(?::text))
+				metaExpr = "jsonb_set(" + metaExpr + ", '{emoji}', to_jsonb(?::text))"
+				args = append(args, *req.Emoji) // First parameter for emoji
+				metaUpdated = true
+			}
+
+			// Compare and update Summary
+			if req.Summary != nil && *req.Summary != currentNode.Meta.Summary {
+				// Second jsonb_set: jsonb_set(previous_expr, '{summary}', to_jsonb(?::text))
+				metaExpr = "jsonb_set(" + metaExpr + ", '{summary}', to_jsonb(?::text))"
+				args = append(args, *req.Summary) // Second parameter for summary
+				metaUpdated = true
+			}
+
+			if metaUpdated {
+				updateMap["meta"] = gorm.Expr(metaExpr, args...)
+				updateStatus = true
+			}
+		}
+
+		// Compare and update Visibility
+		if req.Visibility != nil && *req.Visibility != currentNode.Visibility {
+			updateMap["visibility"] = *req.Visibility
+			updateStatus = true
+		}
+
+		// If any field is updated, set status to draft
+		if updateStatus {
+			updateMap["status"] = domain.NodeStatusDraft
+		}
+
+		// Perform update if there are changes
+		if len(updateMap) > 0 {
+			// Use the transaction's DB instance for the update
+			return tx.Model(&domain.Node{}).
+				Where("id = ?", req.ID).
+				Where("kb_id = ?", req.KBID).
+				Updates(updateMap).Error
+		}
+		return nil
+	})
+
+	// Return any error from the transaction
+	return err
 }
 
-func (r *NodeRepository) GetByID(ctx context.Context, id string) (*domain.NodeDetailResp, error) {
+func (r *NodeRepository) GetByID(ctx context.Context, id, kbId string) (*domain.NodeDetailResp, error) {
 	var node *domain.NodeDetailResp
 	if err := r.db.WithContext(ctx).
 		Model(&domain.Node{}).
 		Where("id = ?", id).
+		Where("kb_id = ?", kbId).
 		First(&node).Error; err != nil {
 		return nil, err
 	}
@@ -362,6 +418,9 @@ func (r *NodeRepository) GetNodeReleaseListByKBID(ctx context.Context, kbID stri
 		Where("kb_id = ?", kbID).
 		Order("created_at DESC").
 		First(&kbRelease).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
 		return nil, err
 	}
 
@@ -430,7 +489,17 @@ func (r *NodeRepository) MoveNodeBetween(ctx context.Context, id string, parentI
 			maxPos = nextNode.Position
 		}
 
+		node, err := r.GetNodeByID(ctx, id)
+		if err != nil {
+			return err
+		}
+
 		newPos := prevPos + (maxPos-prevPos)/2.0
+		if newPos-prevPos < domain.MinPositionGap {
+			if err := r.reorderPositionsByParentID(tx, node.KBID, parentID); err != nil {
+				return err
+			}
+		}
 
 		return tx.Model(&domain.Node{}).
 			Where("id = ?", id).
@@ -596,35 +665,68 @@ func (r *NodeRepository) BatchMove(ctx context.Context, req *domain.BatchMoveReq
 	})
 }
 
-func (r *NodeRepository) GetNodeReleaseListByKBIDNodeID(ctx context.Context, kbID, nodeID string) ([]*domain.NodeReleaseListItem, error) {
-	subQuery := r.db.
-		Model(&domain.KBReleaseNodeRelease{}).
-		Select("release_id").
-		Where("node_release_id = node_releases.id").
-		Order("created_at ASC").
-		Limit(1)
-
-	var nodeReleases []*domain.NodeReleaseListItem
-	if err := r.db.WithContext(ctx).
-		Model(&domain.NodeRelease{}).
-		Select("node_releases.id, node_releases.node_id, node_releases.meta, node_releases.name, node_releases.updated_at, (?) as release_id", subQuery).
-		Where("node_releases.kb_id = ?", kbID).
-		Where("node_releases.node_id = ?", nodeID).
-		Order("node_releases.updated_at DESC").
-		Find(&nodeReleases).Error; err != nil {
-		return nil, err
+// reorderPositionsByParentID 重排所给父节点下的所有子节点
+func (r *NodeRepository) reorderPositionsByParentID(tx *gorm.DB, kbID, parentID string) error {
+	var nodes []*domain.Node
+	if parentID == "" {
+		if err := tx.Model(&domain.Node{}).
+			Where("kb_id = ?", kbID).
+			Where("parent_id IS NULL OR parent_id = ''").
+			Order("position").
+			Find(&nodes).Error; err != nil {
+			return err
+		}
+	} else {
+		if err := tx.Model(&domain.Node{}).
+			Where("kb_id = ?", kbID).
+			Where("parent_id = ?", parentID).
+			Order("position").
+			Find(&nodes).Error; err != nil {
+			return err
+		}
 	}
-
-	return nodeReleases, nil
+	return r.reorderPositions(tx, nodes)
 }
 
-func (r *NodeRepository) GetNodeReleaseDetailByID(ctx context.Context, id string) (*domain.GetNodeReleaseDetailResp, error) {
-	var nodeRelease domain.GetNodeReleaseDetailResp
-	if err := r.db.WithContext(ctx).
-		Model(&domain.NodeRelease{}).
-		Where("id = ?", id).
-		First(&nodeRelease).Error; err != nil {
-		return nil, err
+// reorderPositions 重排所给节点
+func (r *NodeRepository) reorderPositions(tx *gorm.DB, nodes []*domain.Node) error {
+	if len(nodes) == 0 {
+		return nil
 	}
-	return &nodeRelease, nil
+
+	basePosition := int64(1000) // 起始位置
+	interval := int64(1000)     // 间隔
+
+	updates := make([]map[string]interface{}, len(nodes))
+	for i, node := range nodes {
+		newPosition := float64(basePosition + int64(i)*interval)
+		updates[i] = map[string]interface{}{
+			"id":       node.ID,
+			"position": newPosition,
+		}
+	}
+
+	batchSize := 300
+	for i := 0; i < len(updates); i += batchSize {
+		end := i + batchSize
+		if end > len(updates) {
+			end = len(updates)
+		}
+		batch := updates[i:end]
+
+		values := make([]string, 0, len(batch))
+		for _, update := range batch {
+			id := update["id"]
+			pos := update["position"]
+			values = append(values, fmt.Sprintf("('%v', %v)", id, pos))
+		}
+
+		sql := fmt.Sprintf("UPDATE nodes SET position = new_values.new_value FROM (VALUES %s) AS new_values(id, new_value) WHERE nodes.id = new_values.id", strings.Join(values, ", "))
+
+		if err := tx.Exec(sql).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

@@ -51,7 +51,7 @@ const MarkDown = ({ loading = false, content }: MarkDownProps) => {
           color: 'text.tertiary',
           marginBottom: '40px',
           lineHeight: '20px',
-          bgcolor: 'background.paper',
+          bgcolor: 'background.paper2',
           padding: '16px',
           cursor: 'pointer',
           borderRadius: '10px',
@@ -134,11 +134,11 @@ const MarkDown = ({ loading = false, content }: MarkDownProps) => {
                     size='small'
                     onClick={() => setShowThink(!showThink)}
                     sx={{
-                      bgcolor: 'background.paper',
+                      bgcolor: 'background.paper2',
                       ':hover': {
                         bgcolor: addOpacityToColor(
                           theme.palette.primary.main,
-                          0.1
+                          0.1,
                         ),
                         color: theme.palette.primary.main,
                       },
@@ -215,9 +215,9 @@ const MarkDown = ({ loading = false, content }: MarkDownProps) => {
             ...rest
           }: React.HTMLAttributes<HTMLElement>) {
             const match = /language-(\w+)/.exec(className || '');
-            // if (match?.[1] === 'mermaid') {
-            //   return <MermaidDiagram chart={String(children)} />;
-            // }
+            if (match?.[1] === 'mermaid') {
+              return <MermaidDiagram chart={String(children)} />;
+            }
             return match ? (
               <SyntaxHighlighter
                 showLineNumbers

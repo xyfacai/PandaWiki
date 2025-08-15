@@ -23,6 +23,7 @@ import (
 	"github.com/pkoukk/tiktoken-go"
 	"github.com/samber/lo"
 	"github.com/samber/lo/parallel"
+	"golang.org/x/sync/semaphore"
 	"google.golang.org/genai"
 
 	"github.com/chaitin/panda-wiki/config"
@@ -39,11 +40,13 @@ type LLMUsecase struct {
 	kbRepo           *pg.KnowledgeBaseRepository
 	nodeRepo         *pg.NodeRepository
 	modelRepo        *pg.ModelRepository
+	promptRepo       *pg.PromptRepo
 	config           *config.Config
 	logger           *log.Logger
 }
 
-func NewLLMUsecase(config *config.Config, rag rag.RAGService, conversationRepo *pg.ConversationRepository, kbRepo *pg.KnowledgeBaseRepository, nodeRepo *pg.NodeRepository, modelRepo *pg.ModelRepository, logger *log.Logger) *LLMUsecase {
+func NewLLMUsecase(config *config.Config, rag rag.RAGService, conversationRepo *pg.ConversationRepository, kbRepo *pg.KnowledgeBaseRepository, nodeRepo *pg.NodeRepository, modelRepo *pg.ModelRepository, promptRepo *pg.PromptRepo, logger *log.Logger) *LLMUsecase {
+	tiktoken.SetBpeLoader(&utils.Localloader{})
 	return &LLMUsecase{
 		config:           config,
 		rag:              rag,
@@ -51,6 +54,7 @@ func NewLLMUsecase(config *config.Config, rag rag.RAGService, conversationRepo *
 		kbRepo:           kbRepo,
 		nodeRepo:         nodeRepo,
 		modelRepo:        modelRepo,
+		promptRepo:       promptRepo,
 		logger:           logger.WithModule("usecase.llm"),
 	}
 }
@@ -163,8 +167,17 @@ func (u *LLMUsecase) FormatConversationMessages(
 		if len(historyMessages) > 0 {
 			question := historyMessages[len(historyMessages)-1].Content
 
+			systemPrompt := domain.SystemPrompt
+			if prompt, err := u.promptRepo.GetPrompt(ctx, kbID); err != nil {
+				u.logger.Error("get prompt from settings failed", log.Error(err))
+			} else {
+				if prompt != "" {
+					systemPrompt = prompt
+				}
+			}
+
 			template := prompt.FromMessages(schema.GoTemplate,
-				schema.SystemMessage(domain.SystemPrompt),
+				schema.SystemMessage(systemPrompt),
 				schema.UserMessage(domain.UserQuestionFormatter),
 			)
 			// query dataset id from kb
@@ -207,9 +220,9 @@ func (u *LLMUsecase) FormatConversationMessages(
 					}
 				}
 			}
-			u.logger.Info("ranked nodes", log.Int("rankedNodesCount", len(rankedNodes)))
+			u.logger.Debug("ranked nodes", log.Int("rankedNodesCount", len(rankedNodes)))
 			documents := domain.FormatNodeChunks(rankedNodes, kb.AccessSettings.BaseURL)
-			u.logger.Info("documents", log.String("documents", documents))
+			u.logger.Debug("documents", log.String("documents", documents))
 
 			formattedMessages, err := template.Format(ctx, map[string]any{
 				"CurrentDate": time.Now().Format("2006-01-02"),
@@ -410,8 +423,13 @@ func (u *LLMUsecase) SummaryNode(ctx context.Context, model *domain.Model, name,
 	if err != nil {
 		return "", err
 	}
-
+	sem := semaphore.NewWeighted(int64(10))
 	summaries := parallel.Map(chunks, func(chunk string, _ int) string {
+		if err := sem.Acquire(ctx, 1); err != nil {
+			u.logger.Error("Failed to acquire semaphore for chunk: ", log.Error(err))
+			return ""
+		}
+		defer sem.Release(1)
 		summary, err := u.Generate(ctx, chatModel, []*schema.Message{
 			{
 				Role:    "system",

@@ -1,13 +1,15 @@
 'use client';
-
-import { IconFold, IconUnfold } from '@/components/icons';
+import { IconFold, IconSearch, IconUnfold } from '@/components/icons';
 import { useStore } from '@/provider';
+import { filterTreeBySearch } from '@/utils';
 import {
   addExpandState,
   convertToTree,
   filterEmptyFolders,
 } from '@/utils/drag';
-import { Box, IconButton } from '@mui/material';
+import { Box, IconButton, TextField } from '@mui/material';
+import { useDebounce } from 'ahooks';
+import { useMemo, useState } from 'react';
 import CatalogFolder from './CatalogFolder';
 
 const Catalog = ({
@@ -26,14 +28,23 @@ const Catalog = ({
     catalogWidth,
     setCatalogWidth,
   } = useStore();
-  if (mobile) return null;
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, { wait: 300 });
+
   const catalogSetting = kbDetail?.settings?.catalog_settings;
   const catalogFolderExpand = catalogSetting?.catalog_folder !== 2;
-  const tree = addExpandState(
+
+  // 首先转换为树形结构
+  const originalTree = addExpandState(
     filterEmptyFolders(convertToTree(nodeList) || []),
     id as string,
-    catalogFolderExpand
+    catalogFolderExpand,
   );
+
+  const tree = useMemo(() => {
+    return filterTreeBySearch(originalTree, debouncedSearchTerm);
+  }, [originalTree, debouncedSearchTerm]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -53,6 +64,8 @@ const Catalog = ({
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   };
+
+  if (mobile) return null;
 
   return (
     <>
@@ -76,9 +89,9 @@ const Catalog = ({
             width: 32,
             height: 32,
             color: 'text.primary',
-            bgcolor: 'background.paper',
+            bgcolor: 'background.paper2',
             '&:hover': {
-              bgcolor: 'background.paper',
+              bgcolor: 'background.paper2',
               borderColor: 'divider',
             },
           }}
@@ -113,6 +126,43 @@ const Catalog = ({
             color: 'text.primary',
           }}
         >
+          <TextField
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <IconSearch sx={{ fontSize: 18, color: 'text.tertiary' }} />
+                ),
+              },
+            }}
+            size='small'
+            placeholder='搜索'
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            sx={{
+              width: 'calc(100% - 26px)',
+              mb: 2,
+              ml: 2,
+              bgcolor: 'background.default',
+              borderRadius: '10px',
+              overflow: 'hidden',
+              '& .MuiInputBase-input': {
+                lineHeight: '24px',
+                height: '24px',
+                fontFamily: 'Mono',
+                fontSize: 14,
+              },
+              '& .MuiOutlinedInput-root': {
+                height: 36,
+                fontSize: 14,
+                pr: '18px',
+                '& fieldset': {
+                  borderRadius: '10px',
+                  borderColor: 'divider',
+                  px: 2,
+                },
+              },
+            }}
+          />
           <Box
             sx={{
               px: 2,
@@ -123,9 +173,10 @@ const Catalog = ({
           >
             目录
           </Box>
+
           <Box
             sx={{
-              height: 'calc(100vh - 78px)',
+              height: 'calc(100vh - 130px)',
               overflowY: 'auto',
               overflowX: 'hidden',
               '&::-webkit-scrollbar': {
@@ -135,8 +186,14 @@ const Catalog = ({
               scrollbarWidth: 'none',
             }}
           >
-            {tree.map((item) => (
-              <CatalogFolder id={id} key={item.id} item={item} setId={setId} />
+            {tree.map(item => (
+              <CatalogFolder
+                id={id}
+                key={item.id}
+                item={item}
+                setId={setId}
+                searchTerm={debouncedSearchTerm}
+              />
             ))}
           </Box>
           <Box

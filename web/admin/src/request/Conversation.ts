@@ -10,13 +10,13 @@
  * ---------------------------------------------------------------
  */
 
-import request, { ContentType, RequestParams } from "./httpClient";
+import httpRequest, { ContentType, RequestParams } from "./httpClient";
 import {
   DomainConversationDetailResp,
   DomainResponse,
   GetApiV1ConversationDetailParams,
   GetApiV1ConversationParams,
-  HandlerV1ConversationListItems,
+  V1ConversationListItems,
 } from "./types";
 
 /**
@@ -27,7 +27,7 @@ import {
  * @summary get conversation list
  * @request GET:/api/v1/conversation
  * @response `200` `(DomainResponse & {
-    data?: HandlerV1ConversationListItems,
+    data?: V1ConversationListItems,
 
 })` OK
  */
@@ -36,9 +36,9 @@ export const getApiV1Conversation = (
   query: GetApiV1ConversationParams,
   params: RequestParams = {},
 ) =>
-  request<
+  httpRequest<
     DomainResponse & {
-      data?: HandlerV1ConversationListItems;
+      data?: V1ConversationListItems;
     }
   >({
     path: `/api/v1/conversation`,
@@ -66,7 +66,7 @@ export const getApiV1ConversationDetail = (
   query: GetApiV1ConversationDetailParams,
   params: RequestParams = {},
 ) =>
-  request<
+  httpRequest<
     DomainResponse & {
       data?: DomainConversationDetailResp;
     }

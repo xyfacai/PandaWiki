@@ -4,7 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
+	"github.com/gomarkdown/markdown"
+	"github.com/gomarkdown/markdown/html"
+	"github.com/gomarkdown/markdown/parser"
+	"github.com/microcosm-cc/bluemonday"
 	"github.com/samber/lo"
 	"gorm.io/gorm"
 
@@ -53,8 +58,15 @@ func (u *NodeUsecase) GetList(ctx context.Context, req *domain.GetNodeListReq) (
 	return nodes, nil
 }
 
-func (u *NodeUsecase) GetByID(ctx context.Context, id string) (*domain.NodeDetailResp, error) {
-	return u.nodeRepo.GetByID(ctx, id)
+func (u *NodeUsecase) GetNodeByKBID(ctx context.Context, id, kbId string) (*domain.NodeDetailResp, error) {
+	node, err := u.nodeRepo.GetByID(ctx, id, kbId)
+	if err != nil {
+		return nil, err
+	}
+	if !strings.HasPrefix(node.Content, "<") {
+		node.Content = u.convertMDToHTML(node.Content)
+	}
+	return node, nil
 }
 
 func (u *NodeUsecase) NodeAction(ctx context.Context, req *domain.NodeActionReq) error {
@@ -144,7 +156,14 @@ func (u *NodeUsecase) GetNodeReleaseListByKBID(ctx context.Context, kbID string)
 }
 
 func (u *NodeUsecase) GetNodeReleaseDetailByKBIDAndID(ctx context.Context, kbID, id string) (*domain.NodeDetailResp, error) {
-	return u.nodeRepo.GetNodeReleaseDetailByKBIDAndID(ctx, kbID, id)
+	node, err := u.nodeRepo.GetNodeReleaseDetailByKBIDAndID(ctx, kbID, id)
+	if err != nil {
+		return nil, err
+	}
+	if !strings.HasPrefix(node.Content, "<") {
+		node.Content = u.convertMDToHTML(node.Content)
+	}
+	return node, nil
 }
 
 func (u *NodeUsecase) MoveNode(ctx context.Context, req *domain.MoveNodeReq) error {
@@ -236,28 +255,17 @@ func (u *NodeUsecase) BatchMoveNode(ctx context.Context, req *domain.BatchMoveRe
 	return u.nodeRepo.BatchMove(ctx, req)
 }
 
-func (u *NodeUsecase) GetNodeReleaseListByKBIDNodeID(ctx context.Context, kbID, nodeID string) ([]*domain.NodeReleaseListItem, error) {
-	nodeRelease, err := u.nodeRepo.GetNodeReleaseListByKBIDNodeID(ctx, kbID, nodeID)
-	if err != nil {
-		return nil, err
-	}
-	releaseIDs := lo.Map(nodeRelease, func(item *domain.NodeReleaseListItem, _ int) string {
-		return item.ReleaseID
-	})
-	releaseIDMap, err := u.kbRepo.GetKBReleaseListByIDs(ctx, kbID, releaseIDs)
-	if err != nil {
-		return nil, err
-	}
-	nodeRelease = lo.Map(nodeRelease, func(item *domain.NodeReleaseListItem, _ int) *domain.NodeReleaseListItem {
-		if release, ok := releaseIDMap[item.ReleaseID]; ok {
-			item.ReleaseMessage = release.Message
-			item.ReleaseTag = release.Tag
-		}
-		return item
-	})
-	return nodeRelease, nil
-}
+func (u *NodeUsecase) convertMDToHTML(mdStr string) string {
+	extensions := parser.CommonExtensions & ^parser.Autolink & ^parser.MathJax
+	p := parser.NewWithExtensions(extensions)
+	doc := p.Parse([]byte(mdStr))
 
-func (u *NodeUsecase) GetNodeReleaseDetailByID(ctx context.Context, id string) (*domain.GetNodeReleaseDetailResp, error) {
-	return u.nodeRepo.GetNodeReleaseDetailByID(ctx, id)
+	// create HTML renderer with extensions
+	htmlFlags := html.CommonFlags | html.HrefTargetBlank
+	opts := html.RendererOptions{Flags: htmlFlags}
+	renderer := html.NewRenderer(opts)
+
+	maybeUnsafeHTML := markdown.Render(doc, renderer)
+	html := bluemonday.UGCPolicy().SanitizeBytes(maybeUnsafeHTML)
+	return string(html)
 }

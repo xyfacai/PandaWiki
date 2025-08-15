@@ -10,7 +10,7 @@
  * ---------------------------------------------------------------
  */
 
-import request, { ContentType, RequestParams } from "./httpClient";
+import httpRequest, { ContentType, RequestParams } from "./httpClient";
 import {
   DomainAnalysisConfluenceResp,
   DomainEpubResp,
@@ -31,10 +31,14 @@ import {
   DomainSearchDocxResp,
   DomainSearchWikiReq,
   DomainSearchWikiResp,
+  DomainSiYuanResp,
   DomainWikiJSResp,
+  DomainYuqueResp,
   PostApiV1CrawlerConfluenceAnalysisExportFilePayload,
   PostApiV1CrawlerEpubConvertPayload,
+  PostApiV1CrawlerSiyuanAnalysisExportFilePayload,
   PostApiV1CrawlerWikijsAnalysisExportFilePayload,
+  PostApiV1CrawlerYuqueAnalysisExportFilePayload,
 } from "./types";
 
 /**
@@ -54,7 +58,7 @@ export const postApiV1CrawlerConfluenceAnalysisExportFile = (
   data: PostApiV1CrawlerConfluenceAnalysisExportFilePayload,
   params: RequestParams = {},
 ) =>
-  request<
+  httpRequest<
     DomainResponse & {
       data?: DomainAnalysisConfluenceResp[];
     }
@@ -84,7 +88,7 @@ export const postApiV1CrawlerEpubConvert = (
   data: PostApiV1CrawlerEpubConvertPayload,
   params: RequestParams = {},
 ) =>
-  request<
+  httpRequest<
     DomainResponse & {
       data?: DomainEpubResp;
     }
@@ -114,7 +118,7 @@ export const postApiV1CrawlerFeishuGetDoc = (
   body: DomainGetDocxReq,
   params: RequestParams = {},
 ) =>
-  request<
+  httpRequest<
     DomainResponse & {
       data?: DomainGetDocxResp[];
     }
@@ -144,7 +148,7 @@ export const postApiV1CrawlerFeishuListDoc = (
   body: DomainSearchDocxReq,
   params: RequestParams = {},
 ) =>
-  request<
+  httpRequest<
     DomainResponse & {
       data?: DomainSearchDocxResp[];
     }
@@ -174,7 +178,7 @@ export const postApiV1CrawlerFeishuListSpaces = (
   body: DomainGetSpaceListReq,
   params: RequestParams = {},
 ) =>
-  request<
+  httpRequest<
     DomainResponse & {
       data?: DomainGetSpaceListResp[];
     }
@@ -204,7 +208,7 @@ export const postApiV1CrawlerFeishuSearchWiki = (
   body: DomainSearchWikiReq,
   params: RequestParams = {},
 ) =>
-  request<
+  httpRequest<
     DomainResponse & {
       data?: DomainSearchWikiResp[];
     }
@@ -234,7 +238,7 @@ export const postApiV1CrawlerNotionGetDoc = (
   body: DomainGetDocsReq,
   params: RequestParams = {},
 ) =>
-  request<
+  httpRequest<
     DomainResponse & {
       data?: DomainPage[];
     }
@@ -264,7 +268,7 @@ export const postApiV1CrawlerNotionGetList = (
   body: DomainNotnionGetListReq,
   params: RequestParams = {},
 ) =>
-  request<
+  httpRequest<
     DomainResponse & {
       data?: DomainPageInfo[];
     }
@@ -294,7 +298,7 @@ export const postApiV1CrawlerParseRss = (
   body: DomainParseURLReq,
   params: RequestParams = {},
 ) =>
-  request<
+  httpRequest<
     DomainResponse & {
       data?: DomainParseURLResp;
     }
@@ -324,7 +328,7 @@ export const postApiV1CrawlerParseSitemap = (
   body: DomainParseURLReq,
   params: RequestParams = {},
 ) =>
-  request<
+  httpRequest<
     DomainResponse & {
       data?: DomainParseURLResp;
     }
@@ -354,7 +358,7 @@ export const postApiV1CrawlerScrape = (
   body: DomainScrapeReq,
   params: RequestParams = {},
 ) =>
-  request<
+  httpRequest<
     DomainResponse & {
       data?: DomainScrapeResp;
     }
@@ -363,6 +367,36 @@ export const postApiV1CrawlerScrape = (
     method: "POST",
     body: body,
     type: ContentType.Json,
+    format: "json",
+    ...params,
+  });
+
+/**
+ * @description Analyze SiYuan Export File
+ *
+ * @tags crawler
+ * @name PostApiV1CrawlerSiyuanAnalysisExportFile
+ * @summary AnalysisSiyuanExportFile
+ * @request POST:/api/v1/crawler/siyuan/analysis_export_file
+ * @response `200` `(DomainResponse & {
+    data?: (DomainSiYuanResp)[],
+
+})` OK
+ */
+
+export const postApiV1CrawlerSiyuanAnalysisExportFile = (
+  data: PostApiV1CrawlerSiyuanAnalysisExportFilePayload,
+  params: RequestParams = {},
+) =>
+  httpRequest<
+    DomainResponse & {
+      data?: DomainSiYuanResp[];
+    }
+  >({
+    path: `/api/v1/crawler/siyuan/analysis_export_file`,
+    method: "POST",
+    body: data,
+    type: ContentType.FormData,
     format: "json",
     ...params,
   });
@@ -384,12 +418,42 @@ export const postApiV1CrawlerWikijsAnalysisExportFile = (
   data: PostApiV1CrawlerWikijsAnalysisExportFilePayload,
   params: RequestParams = {},
 ) =>
-  request<
+  httpRequest<
     DomainResponse & {
       data?: DomainWikiJSResp[];
     }
   >({
     path: `/api/v1/crawler/wikijs/analysis_export_file`,
+    method: "POST",
+    body: data,
+    type: ContentType.FormData,
+    format: "json",
+    ...params,
+  });
+
+/**
+ * @description Analyze Yuque Export File
+ *
+ * @tags crawler
+ * @name PostApiV1CrawlerYuqueAnalysisExportFile
+ * @summary AnalysisYuqueExportFile
+ * @request POST:/api/v1/crawler/yuque/analysis_export_file
+ * @response `200` `(DomainResponse & {
+    data?: (DomainYuqueResp)[],
+
+})` OK
+ */
+
+export const postApiV1CrawlerYuqueAnalysisExportFile = (
+  data: PostApiV1CrawlerYuqueAnalysisExportFilePayload,
+  params: RequestParams = {},
+) =>
+  httpRequest<
+    DomainResponse & {
+      data?: DomainYuqueResp[];
+    }
+  >({
+    path: `/api/v1/crawler/yuque/analysis_export_file`,
     method: "POST",
     body: data,
     type: ContentType.FormData,
