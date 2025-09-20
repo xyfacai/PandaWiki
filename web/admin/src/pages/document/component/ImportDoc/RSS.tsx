@@ -1,10 +1,9 @@
+import { ImportDocListItem, ImportDocProps } from '@/api';
+import { postApiV1Node } from '@/request/Node';
 import {
-  createNode,
-  ImportDocListItem,
-  ImportDocProps,
-  scrapeCrawler,
-  scrapeRSS,
-} from '@/api';
+  postApiV1CrawlerParseRss,
+  postApiV1CrawlerScrape,
+} from '@/request/Crawler';
 import { useAppSelector } from '@/store';
 import {
   Box,
@@ -14,7 +13,7 @@ import {
   Stack,
   TextField,
 } from '@mui/material';
-import { Ellipsis, Icon, Message, Modal } from 'ct-mui';
+import { Ellipsis, Icon, message, Modal } from '@ctzhian/ui';
 import { useEffect, useState } from 'react';
 
 const StepText = {
@@ -64,12 +63,12 @@ const RSSImport = ({
   };
 
   const handleURL = async () => {
-    const { items = [] } = await scrapeRSS({ url });
+    const { items = [] } = await postApiV1CrawlerParseRss({ url });
     setItems(
       items.map(item => ({
-        title: item.title,
-        content: item.desc,
-        url: item.url,
+        title: item.title!,
+        content: item.desc!,
+        url: item.url!,
         success: -1,
         id: '',
       })),
@@ -83,7 +82,7 @@ const RSSImport = ({
     const rssData = items.filter(item => selectIds.includes(item.url));
     for (const item of rssData) {
       newQueue.push(async () => {
-        const res = await scrapeCrawler({ url: item.url, kb_id });
+        const res = await postApiV1CrawlerScrape({ url: item.url, kb_id });
         setItems(prev => [
           {
             ...item,
@@ -115,7 +114,7 @@ const RSSImport = ({
       handleSelectedExportedData();
     } else if (step === 'import') {
       if (selectIds.length === 0) {
-        Message.error('请选择要导入的文档');
+        message.error('请选择要导入的文档');
         return;
       }
       setItems(prev => prev.map(item => ({ ...item, success: 0 })));
@@ -126,16 +125,16 @@ const RSSImport = ({
           if (!curItem || (curItem.id !== '' && curItem.id !== '-1')) {
             continue;
           }
-          const res = await createNode({
+          const res = await postApiV1Node({
             name: curItem?.title || '',
             content: curItem?.content || '',
-            parent_id: parentId,
+            parent_id: parentId || undefined,
             type: 2,
             kb_id,
           });
           const index = newItems.findIndex(item => item.url === url);
           if (index !== -1) {
-            Message.success(newItems[index].title + '导入成功');
+            message.success(newItems[index].title + '导入成功');
             newItems[index] = {
               ...newItems[index],
               success: 1,
@@ -145,7 +144,7 @@ const RSSImport = ({
         } catch (error) {
           const index = newItems.findIndex(item => item.url === url);
           if (index !== -1) {
-            Message.error(newItems[index].title + '导入失败');
+            message.error(newItems[index].title + '导入失败');
             newItems[index] = {
               ...newItems[index],
               success: 1,
@@ -285,7 +284,7 @@ const RSSImport = ({
                   px: 2,
                   py: 1,
                   cursor: 'pointer',
-                  bgcolor: 'background.paper2',
+                  bgcolor: 'background.paper3',
                 }}
               >
                 <Stack
@@ -298,7 +297,7 @@ const RSSImport = ({
                     type='icon-shuaxin'
                     sx={{
                       fontSize: 18,
-                      color: 'text.auxiliary',
+                      color: 'text.tertiary',
                       animation: 'loadingRotate 1s linear infinite',
                     }}
                   />
@@ -322,7 +321,7 @@ const RSSImport = ({
                   borderBottom: idx === items.length - 1 ? 'none' : '1px solid',
                   borderColor: 'divider',
                   ':hover': {
-                    bgcolor: 'background.paper2',
+                    bgcolor: 'background.paper3',
                   },
                 }}
               >
@@ -331,7 +330,7 @@ const RSSImport = ({
                     type='icon-shuaxin'
                     sx={{
                       fontSize: 18,
-                      color: 'text.auxiliary',
+                      color: 'text.tertiary',
                       animation: 'loadingRotate 1s linear infinite',
                     }}
                   />
@@ -379,7 +378,7 @@ const RSSImport = ({
                     {item.title || item.url}
                   </Ellipsis>
                   {item.content && (
-                    <Ellipsis sx={{ fontSize: 12, color: 'text.auxiliary' }}>
+                    <Ellipsis sx={{ fontSize: 12, color: 'text.tertiary' }}>
                       {item.content}
                     </Ellipsis>
                   )}
@@ -396,15 +395,15 @@ const RSSImport = ({
                             : it,
                         ),
                       );
-                      createNode({
+                      postApiV1Node({
                         name: item.title,
                         content: item.content,
-                        parent_id: parentId,
+                        parent_id: parentId || undefined,
                         type: 2,
                         kb_id,
                       })
                         .then(res => {
-                          Message.success(item.title + '导入成功');
+                          message.success(item.title + '导入成功');
                           setItems(prev =>
                             prev.map(it =>
                               it.url === item.url
@@ -414,7 +413,7 @@ const RSSImport = ({
                           );
                         })
                         .catch(() => {
-                          Message.error(item.title + '导入失败');
+                          message.error(item.title + '导入失败');
                         });
                     }}
                   >

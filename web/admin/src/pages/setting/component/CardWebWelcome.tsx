@@ -1,29 +1,31 @@
+import { WelcomeSetting } from '@/api';
+import { getApiV1NodeRecommendNodes } from '@/request/Node';
 import {
-  AppDetail,
-  getNodeRecommend,
-  RecommendNode,
-  updateAppDetail,
-  WelcomeSetting,
-} from '@/api';
+  DomainAppDetailResp,
+  DomainRecommendNodeListResp,
+} from '@/request/types';
 import DragRecommend from '@/components/Drag/DragRecommend';
 import { FreeSoloAutocomplete } from '@/components/FreeSoloAutocomplete';
 import { useCommitPendingInput } from '@/hooks';
 import { useAppSelector } from '@/store';
 import { Box, Button, Stack, TextField } from '@mui/material';
-import { Icon, Message } from 'ct-mui';
+import { Icon, message } from '@ctzhian/ui';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import AddRecommendContent from './AddRecommendContent';
+import { FormItem, SettingCardItem } from './Common';
+
+import { putApiV1App } from '@/request/App';
 
 interface CardWebWelcomeProps {
   id: string;
-  data: AppDetail;
+  data: DomainAppDetailResp;
   refresh: (value: WelcomeSetting) => void;
 }
 
 const CardWebWelcome = ({ id, data, refresh }: CardWebWelcomeProps) => {
   const { kb_id } = useAppSelector(state => state.config);
-  const [sorted, setSorted] = useState<RecommendNode[]>([]);
+  const [sorted, setSorted] = useState<DomainRecommendNodeListResp[]>([]);
   const [isEdit, setIsEdit] = useState(false);
   const [open, setOpen] = useState(false);
   const {
@@ -52,20 +54,23 @@ const CardWebWelcome = ({ id, data, refresh }: CardWebWelcomeProps) => {
     },
   });
 
-  const onSubmit = (value: WelcomeSetting) => {
-    updateAppDetail({ id }, { settings: { ...data.settings, ...value } }).then(
-      () => {
-        refresh(value);
-        Message.success('保存成功');
-        setIsEdit(false);
-      },
-    );
-  };
+  const onSubmit = handleSubmit(value => {
+    putApiV1App(
+      { id },
+      { kb_id, settings: { ...data.settings, ...value } },
+    ).then(() => {
+      refresh(value);
+      message.success('保存成功');
+      setIsEdit(false);
+    });
+  });
 
   const nodeRec = () => {
-    getNodeRecommend({ kb_id, node_ids: recommend_node_ids }).then(res => {
-      setSorted(res);
-    });
+    getApiV1NodeRecommendNodes({ kb_id, node_ids: recommend_node_ids }).then(
+      res => {
+        setSorted(res);
+      },
+    );
   };
 
   useEffect(() => {
@@ -85,114 +90,54 @@ const CardWebWelcome = ({ id, data, refresh }: CardWebWelcomeProps) => {
   }, [data]);
 
   return (
-    <>
-      <Stack
-        direction='row'
-        alignItems={'center'}
-        justifyContent={'space-between'}
-        sx={{
-          m: 2,
-          height: 32,
-          fontWeight: 'bold',
-        }}
-      >
-        <Box
-          sx={{
-            '&::before': {
-              content: '""',
-              display: 'inline-block',
-              width: 4,
-              height: 12,
-              bgcolor: 'common.black',
-              borderRadius: '2px',
-              mr: 1,
-            },
-          }}
-        >
-          欢迎页面
-        </Box>
-        {isEdit && (
-          <Button
-            variant='contained'
-            size='small'
-            onClick={handleSubmit(onSubmit)}
-          >
-            保存
-          </Button>
-        )}
-      </Stack>
-      <Stack gap={2} sx={{ m: 2 }}>
-        <Stack direction={'row'} gap={2} alignItems={'center'}>
-          <Box
-            sx={{ width: 156, fontSize: 14, lineHeight: '32px', flexShrink: 0 }}
-          >
-            欢迎标语
-          </Box>
-          <Controller
-            control={control}
-            name='welcome_str'
-            render={({ field }) => (
-              <TextField
-                fullWidth
-                {...field}
-                placeholder='输入欢迎标语'
-                error={!!errors.welcome_str}
-                helperText={errors.welcome_str?.message}
-                onChange={event => {
-                  setIsEdit(true);
-                  field.onChange(event);
-                }}
-              />
-            )}
-          />
-        </Stack>
-        <Stack direction={'row'} gap={2} alignItems={'center'}>
-          <Box
-            sx={{ width: 156, fontSize: 14, lineHeight: '32px', flexShrink: 0 }}
-          >
-            搜索框提示文字
-          </Box>
-          <Controller
-            control={control}
-            name='search_placeholder'
-            render={({ field }) => (
-              <TextField
-                fullWidth
-                {...field}
-                placeholder='输入搜索框提示文字'
-                error={!!errors.search_placeholder}
-                helperText={errors.search_placeholder?.message}
-                onChange={event => {
-                  setIsEdit(true);
-                  field.onChange(event);
-                }}
-              />
-            )}
-          />
-        </Stack>
-        <Stack direction={'row'} gap={2} alignItems={'center'}>
-          <Box
-            sx={{ width: 156, fontSize: 14, lineHeight: '32px', flexShrink: 0 }}
-          >
-            推荐问题
-          </Box>
-          <FreeSoloAutocomplete
-            placeholder='回车确认，填写下一个推荐问题'
-            {...recommendQuestionsField}
-          />
-        </Stack>
-        <Box>
-          <Box
-            sx={{
-              width: 156,
-              fontSize: 14,
-              lineHeight: '32px',
-              flexShrink: 0,
-              my: 1,
-            }}
-          >
-            推荐内容
-          </Box>
+    <SettingCardItem title='欢迎页面' isEdit={isEdit} onSubmit={onSubmit}>
+      <FormItem label='欢迎标语'>
+        {' '}
+        <Controller
+          control={control}
+          name='welcome_str'
+          render={({ field }) => (
+            <TextField
+              fullWidth
+              {...field}
+              placeholder='输入欢迎标语'
+              error={!!errors.welcome_str}
+              helperText={errors.welcome_str?.message}
+              onChange={event => {
+                setIsEdit(true);
+                field.onChange(event);
+              }}
+            />
+          )}
+        />
+      </FormItem>
+      <FormItem label='搜索框提示文字'>
+        <Controller
+          control={control}
+          name='search_placeholder'
+          render={({ field }) => (
+            <TextField
+              fullWidth
+              {...field}
+              placeholder='输入搜索框提示文字'
+              error={!!errors.search_placeholder}
+              helperText={errors.search_placeholder?.message}
+              onChange={event => {
+                setIsEdit(true);
+                field.onChange(event);
+              }}
+            />
+          )}
+        />
+      </FormItem>
+      <FormItem label='推荐问题'>
+        <FreeSoloAutocomplete
+          placeholder='回车确认，填写下一个推荐问题'
+          {...recommendQuestionsField}
+        />
+      </FormItem>
+      <FormItem label='推荐内容' vertical>
+        <Box sx={{ width: '100%' }}>
           <Box sx={{ mb: 1 }}>
             <DragRecommend
               data={sorted || []}
@@ -201,7 +146,7 @@ const CardWebWelcome = ({ id, data, refresh }: CardWebWelcomeProps) => {
                 setIsEdit(true);
                 setValue(
                   'recommend_node_ids',
-                  value.map(item => item.id),
+                  value.map(item => item.id!),
                 );
               }}
             />
@@ -216,17 +161,18 @@ const CardWebWelcome = ({ id, data, refresh }: CardWebWelcomeProps) => {
             添加卡片
           </Button>
         </Box>
-        <AddRecommendContent
-          open={open}
-          selected={recommend_node_ids}
-          onChange={(value: string[]) => {
-            setIsEdit(true);
-            setValue('recommend_node_ids', value);
-          }}
-          onClose={() => setOpen(false)}
-        />
-      </Stack>
-    </>
+      </FormItem>
+
+      <AddRecommendContent
+        open={open}
+        selected={recommend_node_ids}
+        onChange={(value: string[]) => {
+          setIsEdit(true);
+          setValue('recommend_node_ids', value);
+        }}
+        onClose={() => setOpen(false)}
+      />
+    </SettingCardItem>
   );
 };
 export default CardWebWelcome;

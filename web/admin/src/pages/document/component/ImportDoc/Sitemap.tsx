@@ -1,10 +1,9 @@
+import { ImportDocListItem, ImportDocProps } from '@/api';
+import { postApiV1Node } from '@/request/Node';
 import {
-  createNode,
-  ImportDocListItem,
-  ImportDocProps,
-  scrapeCrawler,
-  scrapeSitemap,
-} from '@/api';
+  postApiV1CrawlerParseSitemap,
+  postApiV1CrawlerScrape,
+} from '@/request/Crawler';
 import { useAppSelector } from '@/store';
 import {
   Box,
@@ -14,7 +13,7 @@ import {
   Stack,
   TextField,
 } from '@mui/material';
-import { Ellipsis, Icon, Message, Modal } from 'ct-mui';
+import { Ellipsis, Icon, message, Modal } from '@ctzhian/ui';
 import { useEffect, useState } from 'react';
 
 const StepText = {
@@ -65,12 +64,22 @@ const SitemapImport = ({
 
   const handleURL = async () => {
     const newQueue: (() => Promise<any>)[] = [];
-    const res = await scrapeSitemap({ url });
-    const urls = res.items.map(item => item.url);
+    const res = await postApiV1CrawlerParseSitemap({ url });
+    const urls = res.items?.map(item => item.url) || [];
     for (const url of urls) {
       newQueue.push(async () => {
-        const res = await scrapeCrawler({ url, kb_id });
-        setItems(prev => [{ ...res, url, success: -1, id: '' }, ...prev]);
+        const res = await postApiV1CrawlerScrape({ url: url!, kb_id });
+        setItems(prev => [
+          {
+            ...res,
+            content: res.content!,
+            title: res.title!,
+            url: url!,
+            success: -1,
+            id: '',
+          },
+          ...prev,
+        ]);
       });
     }
     setStep('import');
@@ -87,7 +96,7 @@ const SitemapImport = ({
       handleURL();
     } else if (step === 'import') {
       if (selectIds.length === 0) {
-        Message.error('请选择要导入的文档');
+        message.error('请选择要导入的文档');
         return;
       }
       setItems(prev => prev.map(item => ({ ...item, success: 0 })));
@@ -98,16 +107,16 @@ const SitemapImport = ({
           if (!curItem || (curItem.id !== '' && curItem.id !== '-1')) {
             continue;
           }
-          const res = await createNode({
+          const res = await postApiV1Node({
             name: curItem?.title || '',
             content: curItem?.content || '',
-            parent_id: parentId,
+            parent_id: parentId || undefined,
             type: 2,
             kb_id,
           });
           const index = newItems.findIndex(item => item.url === url);
           if (index !== -1) {
-            Message.success(newItems[index].title + '导入成功');
+            message.success(newItems[index].title + '导入成功');
             newItems[index] = {
               ...newItems[index],
               success: 1,
@@ -117,7 +126,7 @@ const SitemapImport = ({
         } catch (error) {
           const index = newItems.findIndex(item => item.url === url);
           if (index !== -1) {
-            Message.error(newItems[index].title + '导入失败');
+            message.error(newItems[index].title + '导入失败');
             newItems[index] = {
               ...newItems[index],
               success: 1,
@@ -257,7 +266,7 @@ const SitemapImport = ({
                   px: 2,
                   py: 1,
                   cursor: 'pointer',
-                  bgcolor: 'background.paper2',
+                  bgcolor: 'background.paper3',
                 }}
               >
                 <Stack
@@ -270,7 +279,7 @@ const SitemapImport = ({
                     type='icon-shuaxin'
                     sx={{
                       fontSize: 18,
-                      color: 'text.auxiliary',
+                      color: 'text.tertiary',
                       animation: 'loadingRotate 1s linear infinite',
                     }}
                   />
@@ -294,7 +303,7 @@ const SitemapImport = ({
                   borderBottom: idx === items.length - 1 ? 'none' : '1px solid',
                   borderColor: 'divider',
                   ':hover': {
-                    bgcolor: 'background.paper2',
+                    bgcolor: 'background.paper3',
                   },
                 }}
               >
@@ -303,7 +312,7 @@ const SitemapImport = ({
                     type='icon-shuaxin'
                     sx={{
                       fontSize: 18,
-                      color: 'text.auxiliary',
+                      color: 'text.tertiary',
                       animation: 'loadingRotate 1s linear infinite',
                     }}
                   />
@@ -351,7 +360,7 @@ const SitemapImport = ({
                     {item.title || item.url}
                   </Ellipsis>
                   {item.content && (
-                    <Ellipsis sx={{ fontSize: 12, color: 'text.auxiliary' }}>
+                    <Ellipsis sx={{ fontSize: 12, color: 'text.tertiary' }}>
                       {item.content}
                     </Ellipsis>
                   )}
@@ -368,15 +377,15 @@ const SitemapImport = ({
                             : it,
                         ),
                       );
-                      createNode({
+                      postApiV1Node({
                         name: item.title,
                         content: item.content,
-                        parent_id: parentId,
+                        parent_id: parentId || undefined,
                         type: 2,
                         kb_id,
                       })
                         .then(res => {
-                          Message.success(item.title + '导入成功');
+                          message.success(item.title + '导入成功');
                           setItems(prev =>
                             prev.map(it =>
                               it.url === item.url
@@ -386,7 +395,7 @@ const SitemapImport = ({
                           );
                         })
                         .catch(() => {
-                          Message.error(item.title + '导入失败');
+                          message.error(item.title + '导入失败');
                         });
                     }}
                   >

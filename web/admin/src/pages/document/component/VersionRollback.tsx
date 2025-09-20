@@ -1,13 +1,13 @@
-import { DomainNodeReleaseListItem } from "@/request/pro";
+import { DomainNodeReleaseListItem } from '@/request/pro';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import { Box, Stack } from '@mui/material';
-import { Modal } from 'ct-mui';
+import { Modal } from '@ctzhian/ui';
 
 interface VersionRollbackProps {
   open: boolean;
   onClose: () => void;
-  onOk: () => void
-  data: DomainNodeReleaseListItem
+  onOk: () => void;
+  data: DomainNodeReleaseListItem | null;
 }
 
 const VersionRollback = ({
@@ -16,6 +16,7 @@ const VersionRollback = ({
   data,
   onOk,
 }: VersionRollbackProps) => {
+  if (!data) return null;
   return (
     <Modal
       title={
@@ -30,7 +31,7 @@ const VersionRollback = ({
     >
       <Stack direction='row' spacing={2} sx={{ mb: 1, lineHeight: '24px' }}>
         <Box sx={{ fontSize: 14, width: 100 }}>版本号</Box>
-        <Box sx={{ fontFamily: 'Gbold' }}>{data.release_name}</Box>
+        <Box sx={{ fontWeight: 700 }}>{data.release_name}</Box>
       </Stack>
       <Stack direction='row' spacing={2} sx={{ lineHeight: '24px' }}>
         <Box sx={{ fontSize: 14, width: 100, flexShrink: 0 }}>版本描述</Box>

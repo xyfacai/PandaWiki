@@ -1,16 +1,17 @@
-import { createNode, NodeDetail, updateNode } from '@/api';
 import Emoji from '@/components/Emoji';
+import { V1NodeDetailResp } from '@/request';
+import { postApiV1Node, putApiV1NodeDetail } from '@/request/Node';
 import { useAppSelector } from '@/store';
 import { Box, TextField } from '@mui/material';
-import { Message, Modal } from 'ct-mui';
+import { message, Modal } from '@ctzhian/ui';
 import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
 interface DocAddByCustomTextProps {
   open: boolean;
-  data?: NodeDetail | null;
+  data?: V1NodeDetailResp;
   onClose: () => void;
-  setDetail?: (data: NodeDetail) => void;
+  setDetail?: (data: V1NodeDetailResp) => void;
   refresh?: () => void;
   type?: 1 | 2;
 }
@@ -44,18 +45,17 @@ const DocAddByCustomText = ({
 
   const submit = (value: { name: string; emoji: string }) => {
     if (data) {
-      updateNode({
-        id: data.id,
+      putApiV1NodeDetail({
+        id: data.id || '',
         kb_id: id,
         name: value.name,
         emoji: value.emoji,
       }).then(() => {
-        Message.success('修改成功');
+        message.success('修改成功');
         reset();
         handleClose();
         refresh?.();
         setDetail?.({
-          ...data,
           name: value.name,
           meta: { ...data.meta, emoji: value.emoji },
           status: 1,
@@ -63,15 +63,14 @@ const DocAddByCustomText = ({
       });
     } else {
       if (!id) return;
-      createNode({
+      postApiV1Node({
         name: value.name,
         content: '',
         kb_id: id,
-        parent_id: null,
         type,
         emoji: value.emoji,
       }).then(({ id }) => {
-        Message.success('创建成功');
+        message.success('创建成功');
         reset();
         handleClose();
         refresh?.();
@@ -86,7 +85,7 @@ const DocAddByCustomText = ({
     if (data) {
       reset({
         name: data.name || '',
-        emoji: data.meta.emoji || '',
+        emoji: data.meta?.emoji || '',
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

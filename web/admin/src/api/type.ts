@@ -1,4 +1,5 @@
 import { AppType, IconMap, ModelProvider } from '@/constant/enums';
+import { DomainNodePermissions } from '@/request/types';
 
 export type Paging = {
   page?: number;
@@ -91,7 +92,7 @@ export type KnowledgeBaseListItem = Pick<
 export interface CardWebHeaderBtn {
   id: string;
   url: string;
-  variant: 'contained' | 'outlined';
+  variant: 'contained' | 'outlined' | 'text';
   showIcon: boolean;
   icon: string;
   text: string;
@@ -123,7 +124,6 @@ export type NodeListItem = {
   created_at: string;
   updated_at: string;
   status: 1 | 2; // 1 草稿 2 发布
-  visibility: 1 | 2; // 1 私有 2 公开
 };
 
 export type GetNodeRecommendData = {
@@ -181,7 +181,6 @@ export type UpdateNodeData = {
   name?: string;
   emoji?: string;
   status?: 1 | 2;
-  visibility?: 1 | 2;
   summary?: string;
 };
 
@@ -191,7 +190,7 @@ export interface ITreeItem {
   level: number;
   order?: number;
   emoji?: string;
-  parentId?: string | null;
+  parentId?: string;
   summary?: string;
   children?: ITreeItem[];
   type: 1 | 2;
@@ -199,7 +198,7 @@ export interface ITreeItem {
   canHaveChildren?: boolean;
   updated_at?: string;
   status?: 1 | 2;
-  visibility?: 1 | 2;
+  permissions?: DomainNodePermissions;
 }
 
 export interface NodeReleaseItem {
@@ -274,7 +273,7 @@ export type WechatOfficeAccountSetting = {
 
 export type WecomBotSetting = {
   wechat_app_is_enabled: boolean;
-  wechat_app_agent_id: number;
+  wechat_app_agent_id: string;
   wechat_app_secret: string;
   wechat_app_token: string;
   wechat_app_encodingaeskey: string;
@@ -327,6 +326,7 @@ export type CustomCodeSetting = {
 
 export type ThemeAndStyleSetting = {
   bg_image: string;
+  doc_width?: string;
 };
 
 export type ThemeMode = {
@@ -370,6 +370,23 @@ export type OtherSetting = {
   base_url: string;
 };
 
+export type CustomSetting = {
+  web_app_custom_style: {
+    allow_theme_switching?: boolean;
+    header_search_placeholder?: string;
+    show_brand_info?: boolean;
+    social_media_accounts?: DomainSocialMediaAccount[];
+    footer_show_intro?: boolean;
+  };
+};
+export interface DomainSocialMediaAccount {
+  channel?: string;
+  icon?: string;
+  link?: string;
+  text?: string;
+  phone?: string;
+}
+
 export type AppSetting = HeaderSetting &
   WelcomeSetting &
   SEOSetting &
@@ -381,7 +398,8 @@ export type AppSetting = HeaderSetting &
   FeishuBotSetting &
   DiscordBotSetting &
   ThemeMode &
-  OtherSetting;
+  OtherSetting &
+  CustomSetting;
 
 export type RecommendNode = {
   id: string;
@@ -422,15 +440,17 @@ export type AppConfigEditData = {
 // =============================================》model
 
 export type GetModelNameData = {
-  type: 'chat' | 'embedding' | 'rerank';
+  type: 'chat' | 'embedding' | 'rerank' | 'analysis';
   provider: keyof typeof ModelProvider | '';
   api_header: string;
   api_key: string;
   base_url: string;
+  is_active?: boolean;
 };
 
 export type CreateModelData = {
   model: string;
+  parameters?: DomainModelParam;
 } & GetModelNameData;
 
 export type CheckModelData = {
@@ -439,16 +459,27 @@ export type CheckModelData = {
 
 export type UpdateModelData = {
   id: string;
+  param?: DomainModelParam;
 } & CheckModelData;
+
+export interface DomainModelParam {
+  context_window?: number;
+  max_tokens?: number;
+  r1_enabled?: boolean;
+  support_computer_use?: boolean;
+  support_images?: boolean;
+  support_prompt_cache?: boolean;
+}
 
 export type ModelListItem = {
   completion_tokens: number;
   id: string;
   model: keyof typeof IconMap;
-  type: 'chat' | 'embedding' | 'rerank';
+  type: 'chat' | 'embedding' | 'rerank' | 'analysis';
   api_version: string;
   prompt_tokens: number;
   total_tokens: number;
+  parameters?: DomainModelParam;
 } & GetModelNameData;
 
 // =============================================》conversation

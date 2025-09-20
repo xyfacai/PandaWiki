@@ -1,25 +1,25 @@
-import { createNodeSummary } from '@/api';
-import { NodeListItem } from '@/api/type';
+import { postApiV1NodeSummary } from '@/request/Node';
+import { DomainNodeListItemResp } from '@/request/types';
 import Card from '@/components/Card';
 import DragTree from '@/components/Drag/DragTree';
 import { convertToTree } from '@/utils/drag';
 import { filterEmptyFolders } from '@/utils/tree';
 import ErrorIcon from '@mui/icons-material/Error';
 import { Box, Stack } from '@mui/material';
-import { Message, Modal } from 'ct-mui';
+import { message, Modal } from '@ctzhian/ui';
 
 interface DocSummaryProps {
   open: boolean;
   kb_id: string;
   onClose: () => void;
-  data: NodeListItem[];
+  data: DomainNodeListItemResp[];
   refresh?: () => void;
 }
 
 const DocSummary = ({ open, kb_id, onClose, data }: DocSummaryProps) => {
   const submit = () => {
-    createNodeSummary({ kb_id, ids: data.map(it => it.id) }).then(() => {
-      Message.success('正在后台生成文档摘要');
+    postApiV1NodeSummary({ kb_id, ids: data.map(it => it.id!) }).then(() => {
+      message.success('正在后台生成文档摘要');
       onClose();
     });
   };
@@ -48,7 +48,7 @@ const DocSummary = ({ open, kb_id, onClose, data }: DocSummaryProps) => {
       <Card
         sx={{
           py: 1,
-          bgcolor: 'background.paper2',
+          bgcolor: 'background.paper3',
           '& .dndkit-drag-handle': {
             top: '-2px !important',
           },

@@ -1,21 +1,20 @@
-import { Divider } from '@mui/material';
-import { useEffect, useState } from 'react';
-import CardAuth from './CardAuth';
-import CardCatalog from './CardCatalog';
-import CardFooter from './CardFooter';
-import CardStyle from './CardStyle';
-import CardBasicInfo from './CardBasicInfo';
-import CardListen from './CardListen';
-import CardWebCustomCode from './CardWebCustomCode';
-import CardWebHeader from './CardWebHeader';
-import CardWebSEO from './CardWebSEO';
-import CardWebWelcome from './CardWebWelcome';
-import CardProxy from './CardProxy';
+import { getApiV1AppDetail } from '@/request/App';
 import {
   DomainAppDetailResp,
   DomainKnowledgeBaseDetail,
 } from '@/request/types';
-import { getApiV1AppDetail } from '@/request/App';
+import { useEffect, useState } from 'react';
+import CardAuth from './CardAuth';
+import CardBasicInfo from './CardBasicInfo';
+import CardCatalog from './CardCatalog';
+import CardCustom from './CardCustom';
+import CardFooter from './CardFooter';
+import CardListen from './CardListen';
+import CardProxy from './CardProxy';
+import CardStyle from './CardStyle';
+import CardWebCustomCode from './CardWebCustomCode';
+import CardWebSEO from './CardWebSEO';
+import CardWebWelcome from './CardWebWelcome';
 import { SettingCard } from './Common';
 
 interface CardWebProps {
@@ -42,8 +41,8 @@ const CardWeb = ({ kb, refresh }: CardWebProps) => {
       <CardListen kb={kb} refresh={refresh} />
       <CardProxy kb={kb} refresh={refresh} />
       <CardBasicInfo kb={kb} refresh={refresh} />
+      <CardCustom></CardCustom>
       <CardAuth kb={kb} refresh={refresh} />
-      <Divider sx={{ my: 2 }} />
       <CardStyle
         id={info.id}
         data={info}
@@ -55,13 +54,14 @@ const CardWeb = ({ kb, refresh }: CardWebProps) => {
               theme_mode: value.theme_mode,
               theme_and_style: {
                 ...info.settings?.theme_and_style,
+                doc_width: value.doc_width,
                 bg_image: value.bg_image,
               },
             },
           });
         }}
       />
-      <CardWebHeader
+      {/* <CardWebHeader
         id={info.id}
         data={info}
         refresh={value => {
@@ -73,7 +73,7 @@ const CardWeb = ({ kb, refresh }: CardWebProps) => {
             },
           });
         }}
-      />
+      /> */}
       <CardCatalog
         id={info.id}
         data={info}
@@ -90,7 +90,7 @@ const CardWeb = ({ kb, refresh }: CardWebProps) => {
           });
         }}
       />
-      <CardFooter
+      {/* <CardFooter
         id={info.id}
         data={info}
         refresh={value => {
@@ -105,8 +105,7 @@ const CardWeb = ({ kb, refresh }: CardWebProps) => {
             },
           });
         }}
-      />
-      <Divider sx={{ my: 2 }} />
+      /> */}
       <CardWebWelcome
         id={info.id}
         data={info}
@@ -120,7 +119,6 @@ const CardWeb = ({ kb, refresh }: CardWebProps) => {
           });
         }}
       />
-      <Divider sx={{ my: 2 }} />
       <CardWebSEO
         id={info.id}
         data={info}
@@ -134,7 +132,7 @@ const CardWeb = ({ kb, refresh }: CardWebProps) => {
           });
         }}
       />
-      <Divider sx={{ my: 2 }} />
+
       <CardWebCustomCode
         id={info.id}
         data={info}

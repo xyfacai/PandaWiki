@@ -169,7 +169,7 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 							{
 								"match": []map[string]any{
 									{
-										"path": []string{"/share/v1/app/wechat/app", "/share/v1/app/wechat/service", "/sitemap.xml", "/share/v1/app/wechat/official_account"},
+										"path": []string{"/share/v1/chat/completions", "/share/v1/app/wechat/app", "/share/v1/app/wechat/service", "/sitemap.xml", "/share/v1/app/wechat/official_account", "/share/v1/app/wechat/service/answer"},
 									},
 								},
 								"handle": []map[string]any{
@@ -415,6 +415,16 @@ func (r *KnowledgeBaseRepository) GetKnowledgeBaseList(ctx context.Context) ([]*
 		return nil, err
 	}
 	return kbs, nil
+}
+
+func (r *KnowledgeBaseRepository) GetKnowledgeBaseIds(ctx context.Context) ([]string, error) {
+	var ids []string
+	if err := r.db.WithContext(ctx).
+		Model(&domain.KnowledgeBase{}).
+		Pluck("id", &ids).Error; err != nil {
+		return nil, err
+	}
+	return ids, nil
 }
 
 func (r *KnowledgeBaseRepository) GetKnowledgeBaseListByUserId(ctx context.Context, userId string) ([]*domain.KnowledgeBaseListItem, error) {

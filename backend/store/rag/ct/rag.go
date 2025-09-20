@@ -11,6 +11,7 @@ import (
 	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/base"
 	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/commonmark"
 	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/table"
+	"github.com/cloudwego/eino/schema"
 	"github.com/google/uuid"
 
 	"github.com/chaitin/pandawiki/sdk/rag"
@@ -35,7 +36,10 @@ func NewCTRAG(config *config.Config, logger *log.Logger) (*CTRAG, error) {
 		converter.WithPlugins(
 			base.NewBasePlugin(),
 			commonmark.NewCommonmarkPlugin(),
-			table.NewTablePlugin(table.WithSpanCellBehavior(table.SpanBehaviorMirror)),
+			table.NewTablePlugin(
+				table.WithSpanCellBehavior(table.SpanBehaviorMirror),
+				table.WithNewlineBehavior(table.NewlineBehaviorPreserve),
+			),
 		),
 	)
 	return &CTRAG{
@@ -55,13 +59,35 @@ func (s *CTRAG) CreateKnowledgeBase(ctx context.Context) (string, error) {
 	return dataset.ID, nil
 }
 
-func (s *CTRAG) QueryRecords(ctx context.Context, datasetIDs []string, query string) ([]*domain.NodeContentChunk, error) {
-	chunks, _, err := s.client.RetrieveChunks(ctx, rag.RetrievalRequest{
-		DatasetIDs: datasetIDs,
-		Question:   query,
-		TopK:       10,
+func (s *CTRAG) QueryRecords(ctx context.Context, datasetIDs []string, query string, groupIds []int, historyMsgs []*schema.Message) ([]*domain.NodeContentChunk, error) {
+	var chatMsgs []rag.ChatMessage
+	for _, msg := range historyMsgs {
+		switch msg.Role {
+		case schema.User:
+			chatMsgs = append(chatMsgs, rag.ChatMessage{
+				Role:    string(msg.Role),
+				Content: msg.Content,
+			})
+		case schema.Assistant:
+			chatMsgs = append(chatMsgs, rag.ChatMessage{
+				Role:    string(msg.Role),
+				Content: msg.Content,
+			})
+		default:
+			continue
+		}
+	}
+	s.logger.Debug("retrieving by history msgs", log.Any("history_msgs", historyMsgs), log.Any("chat_msgs", chatMsgs))
+	chunks, _, rewriteQuery, err := s.client.RetrieveChunks(ctx, rag.RetrievalRequest{
+		DatasetIDs:   datasetIDs,
+		Question:     query,
+		TopK:         10,
+		UserGroupIDs: groupIds,
+		ChatMessages: chatMsgs,
 		// SimilarityThreshold: 0.2,
 	})
+	s.logger.Info("retrieve chunks result", log.Int("chunks count", len(chunks)), log.String("query", rewriteQuery))
+
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +103,7 @@ func (s *CTRAG) QueryRecords(ctx context.Context, datasetIDs []string, query str
 	return nodeChunks, nil
 }
 
-func (s *CTRAG) UpsertRecords(ctx context.Context, datasetID string, nodeRelease *domain.NodeRelease) (string, error) {
+func (s *CTRAG) UpsertRecords(ctx context.Context, datasetID string, nodeRelease *domain.NodeRelease, groupIds []int) (string, error) {
 	// create new doc and return new_doc.doc_id
 	tempFile, err := os.CreateTemp("", fmt.Sprintf("%s-*.md", nodeRelease.ID))
 	if err != nil {
@@ -98,7 +124,7 @@ func (s *CTRAG) UpsertRecords(ctx context.Context, datasetID string, nodeRelease
 		return "", fmt.Errorf("close temp file failed: %w", err)
 	}
 	defer os.Remove(tempFile.Name())
-	docs, err := s.client.UploadDocumentsAndParse(ctx, datasetID, []string{tempFile.Name()})
+	docs, err := s.client.UploadDocumentsAndParse(ctx, datasetID, []string{tempFile.Name()}, groupIds)
 	if err != nil {
 		return "", fmt.Errorf("upload document text failed: %w", err)
 	}
@@ -123,16 +149,20 @@ func (s *CTRAG) DeleteKnowledgeBase(ctx context.Context, datasetID string) error
 }
 
 func (s *CTRAG) AddModel(ctx context.Context, model *domain.Model) (string, error) {
+	config, err := json.Marshal(model.Parameters)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal parameters when adding model: %v", err)
+	}
 	addReq := rag.AddModelConfigRequest{
 		Name:      model.Model,
-		Provider:  "openai-compatible-api",
+		Provider:  string(model.Provider),
 		TaskType:  string(model.Type),
 		ApiBase:   model.BaseURL,
 		ApiKey:    model.APIKey,
 		MaxTokens: 8192,
 		IsDefault: true,
 		Enabled:   true,
-		Config:    json.RawMessage(`{"max_context": 8192, "chunk_size": 1024, "chunk_overlap": 128, "dimension": 1024}`),
+		Config:    config,
 	}
 	modelConfig, err := s.client.AddModelConfig(ctx, addReq)
 	if err != nil {
@@ -142,18 +172,22 @@ func (s *CTRAG) AddModel(ctx context.Context, model *domain.Model) (string, erro
 }
 
 func (s *CTRAG) UpdateModel(ctx context.Context, model *domain.Model) error {
+	config, err := json.Marshal(model.Parameters)
+	if err != nil {
+		return fmt.Errorf("failed to marshal model params with err: %v", err)
+	}
 	updateReq := rag.AddModelConfigRequest{
 		Name:      model.Model,
-		Provider:  "openai-compatible-api",
+		Provider:  string(model.Provider),
 		TaskType:  string(model.Type),
 		ApiBase:   model.BaseURL,
 		ApiKey:    model.APIKey,
 		MaxTokens: 8192,
 		IsDefault: true,
-		Enabled:   true,
-		Config:    json.RawMessage(`{"max_context": 8192, "chunk_size": 1024, "chunk_overlap": 128, "dimension": 1024}`),
+		Enabled:   model.IsActive,
+		Config:    config,
 	}
-	_, err := s.client.AddModelConfig(ctx, updateReq)
+	_, err = s.client.AddModelConfig(ctx, updateReq)
 	if err != nil {
 		return err
 	}
@@ -174,7 +208,7 @@ func (s *CTRAG) DeleteModel(ctx context.Context, model *domain.Model) error {
 }
 
 func (s *CTRAG) GetModelList(ctx context.Context) ([]*domain.Model, error) {
-	modelList, err := s.client.GetModelConfigList(ctx, "")
+	modelList, err := s.client.GetModelConfigList(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -189,4 +223,12 @@ func (s *CTRAG) GetModelList(ctx context.Context) ([]*domain.Model, error) {
 		}
 	}
 	return models, nil
+}
+
+func (s *CTRAG) UpdateDocumentGroupIDs(ctx context.Context, datasetID string, docID string, groupIds []int) error {
+	err := s.client.UpdateDocumentGroupIDs(ctx, datasetID, docID, groupIds)
+	if err != nil {
+		return fmt.Errorf("update document group IDs failed: %w", err)
+	}
+	return nil
 }

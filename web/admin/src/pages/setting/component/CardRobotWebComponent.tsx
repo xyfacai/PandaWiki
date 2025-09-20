@@ -1,4 +1,3 @@
-import { updateAppDetail } from '@/api';
 import { DomainKnowledgeBaseDetail } from '@/request/types';
 import ShowText from '@/components/ShowText';
 import UploadFile from '@/components/UploadFile';
@@ -11,12 +10,13 @@ import {
   Stack,
   TextField,
 } from '@mui/material';
-import { Icon, Message } from 'ct-mui';
+import { Icon, message } from '@ctzhian/ui';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { FormItem, SettingCardItem } from './Common';
 import { DomainAppDetailResp } from '@/request/types';
-import { getApiV1AppDetail } from '@/request/App';
+import { getApiV1AppDetail, putApiV1App } from '@/request/App';
+import { useAppSelector } from '@/store';
 
 interface CardRobotWebComponentProps {
   kb: DomainKnowledgeBaseDetail;
@@ -26,6 +26,7 @@ const CardRobotWebComponent = ({ kb }: CardRobotWebComponentProps) => {
   const [isEdit, setIsEdit] = useState(false);
   const [isEnabled, setIsEnabled] = useState(false);
   const [detail, setDetail] = useState<DomainAppDetailResp | null>(null);
+  const { kb_id } = useAppSelector(state => state.config);
   const {
     control,
     handleSubmit,
@@ -75,9 +76,10 @@ const CardRobotWebComponent = ({ kb }: CardRobotWebComponentProps) => {
 
   const onSubmit = handleSubmit(data => {
     if (!detail) return;
-    updateAppDetail(
+    putApiV1App(
       { id: detail.id! },
       {
+        kb_id,
         settings: {
           widget_bot_settings: {
             is_open: data.is_open === 1 ? true : false,
@@ -88,7 +90,7 @@ const CardRobotWebComponent = ({ kb }: CardRobotWebComponentProps) => {
         },
       },
     ).then(() => {
-      Message.success('保存成功');
+      message.success('保存成功');
       setIsEdit(false);
       getDetail();
       reset();

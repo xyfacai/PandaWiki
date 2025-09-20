@@ -35,6 +35,7 @@ func createApp() (*App, error) {
 	}
 	logger := log.NewLogger(configConfig)
 	nodeRepository := pg2.NewNodeRepository(db, logger)
+	appRepository := pg2.NewAppRepository(db, logger)
 	mqProducer, err := mq.NewMQProducer(configConfig, logger)
 	if err != nil {
 		return nil, err
@@ -53,20 +54,23 @@ func createApp() (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	nodeUsecase := usecase.NewNodeUsecase(nodeRepository, ragRepository, knowledgeBaseRepository, llmUsecase, logger, minioClient, modelRepository)
-	userRepository := pg2.NewUserRepository(db, logger)
 	cacheCache, err := cache.NewCache(configConfig)
 	if err != nil {
 		return nil, err
 	}
+	authRepo := pg2.NewAuthRepo(db, logger, cacheCache)
+	nodeUsecase := usecase.NewNodeUsecase(nodeRepository, appRepository, ragRepository, knowledgeBaseRepository, llmUsecase, logger, minioClient, modelRepository, authRepo)
+	userRepository := pg2.NewUserRepository(db, logger)
 	kbRepo := cache2.NewKBRepo(cacheCache)
 	knowledgeBaseUsecase, err := usecase.NewKnowledgeBaseUsecase(knowledgeBaseRepository, nodeRepository, ragRepository, userRepository, ragService, kbRepo, logger, configConfig)
 	if err != nil {
 		return nil, err
 	}
 	migrationNodeVersion := fns.NewMigrationNodeVersion(logger, nodeUsecase, knowledgeBaseUsecase, ragRepository)
+	migrationCreateBotAuth := fns.NewMigrationCreateBotAuth(logger)
 	migrationFuncs := &migration.MigrationFuncs{
-		NodeMigration: migrationNodeVersion,
+		NodeMigration:    migrationNodeVersion,
+		BotAuthMigration: migrationCreateBotAuth,
 	}
 	manager, err := migration.NewManager(db, logger, migrationFuncs)
 	if err != nil {

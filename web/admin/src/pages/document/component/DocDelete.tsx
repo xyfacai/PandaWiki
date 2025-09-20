@@ -1,16 +1,17 @@
-import { NodeListItem, updateNodeAction } from '@/api';
+import { postApiV1NodeAction } from '@/request/Node';
+import { DomainNodeListItemResp } from '@/request/types';
 import Card from '@/components/Card';
 import DragTree from '@/components/Drag/DragTree';
 import { useAppSelector } from '@/store';
 import { convertToTree } from '@/utils/drag';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import { Stack } from '@mui/material';
-import { Message, Modal } from 'ct-mui';
+import { message, Modal } from '@ctzhian/ui';
 
 interface DocDeleteProps {
   open: boolean;
   onClose: () => void;
-  data: NodeListItem[];
+  data: DomainNodeListItemResp[];
   refresh?: () => void;
 }
 
@@ -19,12 +20,12 @@ const DocDelete = ({ open, onClose, data, refresh }: DocDeleteProps) => {
   if (!data) return null;
 
   const submit = () => {
-    updateNodeAction({
-      ids: data.map(item => item.id),
+    postApiV1NodeAction({
+      ids: data.map(item => item.id!),
       kb_id,
       action: 'delete',
     }).then(() => {
-      Message.success('删除成功');
+      message.success('删除成功');
       onClose();
       refresh?.();
     });
@@ -50,7 +51,7 @@ const DocDelete = ({ open, onClose, data, refresh }: DocDeleteProps) => {
       <Card
         sx={{
           py: 1,
-          bgcolor: 'background.paper2',
+          bgcolor: 'background.paper3',
           '& .dndkit-drag-handle': {
             top: '-2px !important',
           },

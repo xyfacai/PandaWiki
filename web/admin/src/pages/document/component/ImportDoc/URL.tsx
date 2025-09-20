@@ -1,9 +1,6 @@
-import {
-  createNode,
-  ImportDocListItem,
-  ImportDocProps,
-  scrapeCrawler,
-} from '@/api';
+import { ImportDocListItem, ImportDocProps } from '@/api';
+import { postApiV1Node } from '@/request/Node';
+import { postApiV1CrawlerScrape } from '@/request/Crawler';
 import { useAppSelector } from '@/store';
 import {
   Box,
@@ -13,7 +10,7 @@ import {
   Stack,
   TextField,
 } from '@mui/material';
-import { Ellipsis, Icon, Message, Modal } from 'ct-mui';
+import { Ellipsis, Icon, message, Modal } from '@ctzhian/ui';
 import { useEffect, useState } from 'react';
 
 const StepText = {
@@ -67,9 +64,9 @@ const URLImport = ({
     const urls = url.split('\n');
     for (const url of urls) {
       newQueue.push(async () => {
-        const { title, content } = await scrapeCrawler({ url, kb_id });
+        const { title, content } = await postApiV1CrawlerScrape({ url, kb_id });
         setItems(prev => [
-          { title: title || url, content, url, success: -1, id: '' },
+          { title: title || url, content: content!, url, success: -1, id: '' },
           ...prev,
         ]);
       });
@@ -88,7 +85,7 @@ const URLImport = ({
       handleURL();
     } else if (step === 'import') {
       if (selectIds.length === 0) {
-        Message.error('请选择要导入的文档');
+        message.error('请选择要导入的文档');
         return;
       }
       setItems(prev => prev.map(item => ({ ...item, success: 0 })));
@@ -99,16 +96,16 @@ const URLImport = ({
           if (!curItem || (curItem.id !== '' && curItem.id !== '-1')) {
             continue;
           }
-          const res = await createNode({
+          const res = await postApiV1Node({
             name: curItem?.title || '',
             content: curItem?.content || '',
-            parent_id: parentId,
+            parent_id: parentId || undefined,
             type: 2,
             kb_id,
           });
           const index = newItems.findIndex(item => item.url === url);
           if (index !== -1) {
-            Message.success(newItems[index].title + '导入成功');
+            message.success(newItems[index].title + '导入成功');
             newItems[index] = {
               ...newItems[index],
               success: 1,
@@ -118,7 +115,7 @@ const URLImport = ({
         } catch (error) {
           const index = newItems.findIndex(item => item.url === url);
           if (index !== -1) {
-            Message.error(newItems[index].title + '导入失败');
+            message.error(newItems[index].title + '导入失败');
             newItems[index] = {
               ...newItems[index],
               success: 1,
@@ -258,7 +255,7 @@ const URLImport = ({
                   px: 2,
                   py: 1,
                   cursor: 'pointer',
-                  bgcolor: 'background.paper2',
+                  bgcolor: 'background.paper3',
                 }}
               >
                 <Stack
@@ -271,7 +268,7 @@ const URLImport = ({
                     type='icon-shuaxin'
                     sx={{
                       fontSize: 18,
-                      color: 'text.auxiliary',
+                      color: 'text.tertiary',
                       animation: 'loadingRotate 1s linear infinite',
                     }}
                   />
@@ -295,7 +292,7 @@ const URLImport = ({
                   borderBottom: idx === items.length - 1 ? 'none' : '1px solid',
                   borderColor: 'divider',
                   ':hover': {
-                    bgcolor: 'background.paper2',
+                    bgcolor: 'background.paper3',
                   },
                 }}
               >
@@ -304,7 +301,7 @@ const URLImport = ({
                     type='icon-shuaxin'
                     sx={{
                       fontSize: 18,
-                      color: 'text.auxiliary',
+                      color: 'text.tertiary',
                       animation: 'loadingRotate 1s linear infinite',
                     }}
                   />
@@ -352,7 +349,7 @@ const URLImport = ({
                     {item.title || item.url}
                   </Ellipsis>
                   {item.content && (
-                    <Ellipsis sx={{ fontSize: 12, color: 'text.auxiliary' }}>
+                    <Ellipsis sx={{ fontSize: 12, color: 'text.tertiary' }}>
                       {item.content}
                     </Ellipsis>
                   )}
@@ -369,15 +366,15 @@ const URLImport = ({
                             : it,
                         ),
                       );
-                      createNode({
+                      postApiV1Node({
                         name: item.title,
                         content: item.content,
-                        parent_id: parentId,
+                        parent_id: parentId || undefined,
                         type: 2,
                         kb_id,
                       })
                         .then(res => {
-                          Message.success(item.title + '导入成功');
+                          message.success(item.title + '导入成功');
                           setItems(prev =>
                             prev.map(it =>
                               it.url === item.url
@@ -387,7 +384,7 @@ const URLImport = ({
                           );
                         })
                         .catch(() => {
-                          Message.error(item.title + '导入失败');
+                          message.error(item.title + '导入失败');
                         });
                     }}
                   >

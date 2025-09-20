@@ -39,11 +39,11 @@ func NewKnowledgeBaseHandler(
 	}
 
 	group := echo.Group("/api/v1/knowledge_base", h.auth.Authorize)
-	group.POST("", h.CreateKnowledgeBase)
+	group.POST("", h.CreateKnowledgeBase, h.auth.ValidateUserRole(consts.UserRoleAdmin))
 	group.GET("/list", h.GetKnowledgeBaseList)
 	group.GET("/detail", h.GetKnowledgeBaseDetail)
 	group.PUT("/detail", h.UpdateKnowledgeBase, h.auth.ValidateKBUserPerm(consts.UserKBPermissionFullControl))
-	group.DELETE("/detail", h.DeleteKnowledgeBase, h.auth.ValidateKBUserPerm(consts.UserKBPermissionFullControl))
+	group.DELETE("/detail", h.DeleteKnowledgeBase, h.auth.ValidateUserRole(consts.UserRoleAdmin))
 
 	// user management
 	userGroup := group.Group("/user", h.auth.ValidateKBUserPerm(consts.UserKBPermissionFullControl))
@@ -124,7 +124,7 @@ func (h *KnowledgeBaseHandler) CreateKnowledgeBase(c echo.Context) error {
 //	@Tags			knowledge_base
 //	@Accept			json
 //	@Produce		json
-//	@Success		200	{object}	domain.Response{data=[]domain.KnowledgeBaseListItem}
+//	@Success		200	{object}	domain.PWResponse{data=[]domain.KnowledgeBaseListItem}
 //	@Router			/api/v1/knowledge_base/list [get]
 func (h *KnowledgeBaseHandler) GetKnowledgeBaseList(c echo.Context) error {
 
@@ -184,7 +184,7 @@ func (h *KnowledgeBaseHandler) UpdateKnowledgeBase(c echo.Context) error {
 //	@Produce		json
 //	@Security		bearerAuth
 //	@Param			id	query		string	true	"Knowledge Base ID"
-//	@Success		200	{object}	domain.Response{data=domain.KnowledgeBaseDetail}
+//	@Success		200	{object}	domain.PWResponse{data=domain.KnowledgeBaseDetail}
 //	@Router			/api/v1/knowledge_base/detail [get]
 func (h *KnowledgeBaseHandler) GetKnowledgeBaseDetail(c echo.Context) error {
 	kbID := c.QueryParam("id")
@@ -205,6 +205,11 @@ func (h *KnowledgeBaseHandler) GetKnowledgeBaseDetail(c echo.Context) error {
 	perm, err := h.usecase.GetKnowledgeBasePerm(c.Request().Context(), kbID, userID)
 	if err != nil {
 		return h.NewResponseWithError(c, "failed to get knowledge base permission", err)
+	}
+
+	if perm != consts.UserKBPermissionFullControl {
+		kb.AccessSettings.PrivateKey = ""
+		kb.AccessSettings.PublicKey = ""
 	}
 
 	return h.NewResponseWithData(c, &domain.KnowledgeBaseDetail{
@@ -279,7 +284,7 @@ func (h *KnowledgeBaseHandler) CreateKBRelease(c echo.Context) error {
 //	@Accept			json
 //	@Produce		json
 //	@Param			kb_id	query		string	true	"Knowledge Base ID"
-//	@Success		200		{object}	domain.Response{data=domain.GetKBReleaseListResp}
+//	@Success		200		{object}	domain.PWResponse{data=domain.GetKBReleaseListResp}
 //	@Router			/api/v1/knowledge_base/release/list [get]
 func (h *KnowledgeBaseHandler) GetKBReleaseList(c echo.Context) error {
 	var req domain.GetKBReleaseListReq

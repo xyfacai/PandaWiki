@@ -1,6 +1,10 @@
 package share
 
-import "github.com/google/wire"
+import (
+	"github.com/google/wire"
+
+	"github.com/chaitin/panda-wiki/pkg/captcha"
+)
 
 type ShareHandler struct {
 	ShareNodeHandler         *ShareNodeHandler
@@ -11,9 +15,14 @@ type ShareHandler struct {
 	ShareCommentHandler      *ShareCommentHandler
 	ShareAuthHandler         *ShareAuthHandler
 	ShareConversationHandler *ShareConversationHandler
+	ShareWechatHandler       *ShareWechatHandler
+	ShareCaptchaHandler      *ShareCaptchaHandler
+	OpenapiV1Handler         *OpenapiV1Handler
 }
 
 var ProviderSet = wire.NewSet(
+	captcha.NewCaptcha,
+
 	NewShareNodeHandler,
 	NewShareAppHandler,
 	NewShareChatHandler,
@@ -22,6 +31,9 @@ var ProviderSet = wire.NewSet(
 	NewShareCommentHandler,
 	NewShareAuthHandler,
 	NewShareConversationHandler,
+	NewShareWechatHandler,
+	NewShareCaptchaHandler,
+	NewOpenapiV1Handler,
 
 	wire.Struct(new(ShareHandler), "*"),
 )

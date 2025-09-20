@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	modelkit "github.com/chaitin/ModelKit/v2/usecase"
 	"github.com/cloudwego/eino/schema"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -25,10 +26,12 @@ type ChatUsecase struct {
 	kbRepo              *pg.KnowledgeBaseRepository
 	AuthRepo            *pg.AuthRepo
 	logger              *log.Logger
+	modelkit            *modelkit.ModelKit
 }
 
 func NewChatUsecase(llmUsecase *LLMUsecase, kbRepo *pg.KnowledgeBaseRepository, conversationUsecase *ConversationUsecase, modelUsecase *ModelUsecase, appRepo *pg.AppRepository,
 	blockWordRepo *pg.BlockWordRepo, authRepo *pg.AuthRepo, logger *log.Logger) (*ChatUsecase, error) {
+	modelkit := modelkit.NewModelKit(logger.Logger)
 	u := &ChatUsecase{
 		llmUsecase:          llmUsecase,
 		conversationUsecase: conversationUsecase,
@@ -38,6 +41,7 @@ func NewChatUsecase(llmUsecase *LLMUsecase, kbRepo *pg.KnowledgeBaseRepository, 
 		kbRepo:              kbRepo,
 		AuthRepo:            authRepo,
 		logger:              logger.WithModule("usecase.chat"),
+		modelkit:            modelkit,
 	}
 	if err := u.initDFA(); err != nil {
 		u.logger.Error("failed to init dfa", log.Error(err))
@@ -92,7 +96,26 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 		}
 		req.ModelInfo = model
 		// 3. conversation management
-		if req.ConversationID == "" {
+		if req.AppType == domain.AppTypeWechatServiceBot || req.AppType == domain.AppTypeWechatBot { // wechat service has its own id
+			nonce := uuid.New().String()
+			eventCh <- domain.SSEEvent{Type: "conversation_id", Content: req.ConversationID}
+			eventCh <- domain.SSEEvent{Type: "nonce", Content: nonce}
+			err = u.conversationUsecase.CreateConversation(ctx, &domain.Conversation{
+				ID:        req.ConversationID,
+				Nonce:     nonce,
+				AppID:     req.AppID,
+				KBID:      req.KBID,
+				Subject:   req.Message,
+				RemoteIP:  req.RemoteIP,
+				Info:      req.Info,
+				CreatedAt: time.Now(),
+			})
+			if err != nil {
+				u.logger.Error("failed to create chat conversation", log.Error(err))
+				eventCh <- domain.SSEEvent{Type: "error", Content: "failed to create chat conversation"}
+				return
+			}
+		} else if req.ConversationID == "" {
 			id, err := uuid.NewV7()
 			if err != nil {
 				u.logger.Error("failed to generate conversation uuid", log.Error(err))
@@ -181,13 +204,29 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 			}
 		}
 
+		if req.Info.UserInfo.AuthUserID == 0 {
+			auth, _ := u.AuthRepo.GetAuthBySourceType(ctx, req.AppType.ToSourceType())
+			if auth != nil {
+				req.Info.UserInfo.AuthUserID = auth.ID
+			}
+		}
+
+		groupIds, err := u.AuthRepo.GetAuthGroupIdsWithParentsByAuthId(ctx, req.Info.UserInfo.AuthUserID)
+		if err != nil {
+			u.logger.Error("failed to get auth groupIds", log.Error(err))
+			eventCh <- domain.SSEEvent{Type: "error", Content: "failed to get auth groupIds"}
+			return
+		}
+
 		// 4. retrieve documents and format prompt
-		messages, rankedNodes, err := u.llmUsecase.FormatConversationMessages(ctx, req.ConversationID, req.KBID)
+		messages, rankedNodes, err := u.llmUsecase.FormatConversationMessages(ctx, req.ConversationID, req.KBID, groupIds)
 		if err != nil {
 			u.logger.Error("failed to format chat messages", log.Error(err))
 			eventCh <- domain.SSEEvent{Type: "error", Content: "failed to format chat messages"}
 			return
 		}
+
+		u.logger.Debug("message:", log.Any("schema", messages))
 		for _, node := range rankedNodes {
 			chunkResult := domain.NodeContentChunkSSE{
 				NodeID:  node.NodeID,
@@ -199,7 +238,15 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 		// 5. LLM inference (streaming callback), message storage, token statistics
 		answer := ""
 		usage := schema.TokenUsage{}
-		chatModel, err := u.llmUsecase.GetChatModel(ctx, req.ModelInfo)
+
+		modelkitModel, err := req.ModelInfo.ToModelkitModel()
+		if err != nil {
+			u.logger.Error("failed to convert model to modelkit model", log.Error(err))
+			eventCh <- domain.SSEEvent{Type: "error", Content: "failed to convert model to modelkit model"}
+			return
+		}
+		chatModel, err := u.modelkit.GetChatModel(ctx, modelkitModel)
+
 		if err != nil {
 			u.logger.Error("failed to get chat model", log.Error(err))
 			eventCh <- domain.SSEEvent{Type: "error", Content: "failed to get chat model"}
@@ -207,6 +254,7 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 		}
 		// get words
 		onChunkAC, flushBuffer := u.CreateAcOnChunk(ctx, req.KBID, &answer, eventCh, blockWords)
+
 		chatErr := u.llmUsecase.ChatWithAgent(ctx, chatModel, messages, &usage, onChunkAC)
 
 		// 处理缓冲区中剩余的内容

@@ -1,11 +1,12 @@
-import { createNodeSummary, RecommendNode } from '@/api';
+import { postApiV1NodeSummary } from '@/request/Node';
+import { DomainRecommendNodeListResp } from '@/request/types';
 import { useAppSelector } from '@/store';
 import { Box, IconButton, Stack } from '@mui/material';
-import { Ellipsis, Icon, Message } from 'ct-mui';
+import { Ellipsis, Icon, message } from '@ctzhian/ui';
 import { CSSProperties, forwardRef, HTMLAttributes, useState } from 'react';
 
 export type ItemProps = HTMLAttributes<HTMLDivElement> & {
-  item: RecommendNode;
+  item: DomainRecommendNodeListResp;
   withOpacity?: boolean;
   isDragging?: boolean;
   dragHandleProps?: any;
@@ -41,9 +42,9 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
 
     const handleCreateSummary = () => {
       setLoading(true);
-      createNodeSummary({ ids: [item.id], kb_id })
+      postApiV1NodeSummary({ ids: [item.id!], kb_id })
         .then(() => {
-          Message.success('生成摘要成功');
+          message.success('生成摘要成功');
           refresh?.();
         })
         .finally(() => {
@@ -83,12 +84,12 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
                 {item.name}
               </Ellipsis>
             </Stack>
-            {!!item.summary ? (
+            {item.summary ? (
               <Box
                 className='ellipsis-5'
                 sx={{
                   fontSize: 14,
-                  color: 'text.auxiliary',
+                  color: 'text.tertiary',
                   lineHeight: '21px',
                 }}
               >
@@ -107,7 +108,7 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
             ml: '18px',
           }} onClick={handleCreateSummary}>生成摘要</Button> : null} */}
             {item.recommend_nodes && item.recommend_nodes.length > 0 && (
-              <Stack sx={{ fontSize: 14, color: 'text.auxiliary', pl: '20px' }}>
+              <Stack sx={{ fontSize: 14, color: 'text.tertiary', pl: '20px' }}>
                 {item.recommend_nodes
                   .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
                   .slice(0, 4)
@@ -130,10 +131,10 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
               size='small'
               onClick={e => {
                 e.stopPropagation();
-                handleRemove?.(item.id);
+                handleRemove?.(item.id!);
               }}
               sx={{
-                color: 'text.auxiliary',
+                color: 'text.tertiary',
                 ':hover': { color: 'error.main' },
               }}
             >

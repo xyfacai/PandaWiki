@@ -1,11 +1,12 @@
-import { getNodeList, ITreeItem, NodeListFilterData } from '@/api';
+import { ITreeItem, NodeListFilterData } from '@/api';
+import { getApiV1NodeList } from '@/request/Node';
 import Nodata from '@/assets/images/nodata.png';
 import DragTree from '@/components/Drag/DragTree';
 import { useAppSelector } from '@/store';
 import { convertToTree } from '@/utils/drag';
 import { filterEmptyFolders } from '@/utils/tree';
 import { Box, Skeleton, Stack } from '@mui/material';
-import { Modal } from 'ct-mui';
+import { Modal } from '@ctzhian/ui';
 import { useCallback, useEffect, useState } from 'react';
 
 interface AddRecommendContentProps {
@@ -29,13 +30,10 @@ const AddRecommendContent = ({
   const getData = useCallback(() => {
     setLoading(true);
     const params: NodeListFilterData = { kb_id };
-    getNodeList(params)
+    getApiV1NodeList(params)
       .then(res => {
         const filterData =
-          res?.filter(
-            item =>
-              item.type === 1 || (item.visibility === 2 && item.status === 2),
-          ) || [];
+          res?.filter(item => item.type === 1 || item.status === 2) || [];
         const filterTreeData = convertToTree(filterData);
         const showTreeData = filterEmptyFolders(filterTreeData);
         setList(showTreeData);
@@ -87,7 +85,7 @@ const AddRecommendContent = ({
             sx={{
               fontSize: 12,
               lineHeight: '20px',
-              color: 'text.auxiliary',
+              color: 'text.tertiary',
               mt: 1,
             }}
           >

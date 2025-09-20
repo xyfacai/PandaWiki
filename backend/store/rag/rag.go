@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/cloudwego/eino/schema"
 	"github.com/google/wire"
 
 	"github.com/chaitin/panda-wiki/config"
@@ -14,10 +15,11 @@ import (
 
 type RAGService interface {
 	CreateKnowledgeBase(ctx context.Context) (string, error)
-	UpsertRecords(ctx context.Context, datasetID string, nodeRelease *domain.NodeRelease) (string, error)
-	QueryRecords(ctx context.Context, datasetIDs []string, query string) ([]*domain.NodeContentChunk, error)
+	UpsertRecords(ctx context.Context, datasetID string, nodeRelease *domain.NodeRelease, authGroupId []int) (string, error)
+	QueryRecords(ctx context.Context, datasetIDs []string, query string, groupIDs []int, historyMsgs []*schema.Message) ([]*domain.NodeContentChunk, error)
 	DeleteRecords(ctx context.Context, datasetID string, docIDs []string) error
 	DeleteKnowledgeBase(ctx context.Context, datasetID string) error
+	UpdateDocumentGroupIDs(ctx context.Context, datasetID string, docID string, groupIds []int) error
 
 	GetModelList(ctx context.Context) ([]*domain.Model, error)
 	AddModel(ctx context.Context, model *domain.Model) (string, error)

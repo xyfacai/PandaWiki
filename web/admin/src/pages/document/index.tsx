@@ -1,10 +1,4 @@
-import {
-  getNodeList,
-  ImportDocType,
-  ITreeItem,
-  NodeListFilterData,
-  NodeListItem,
-} from '@/api';
+import { ImportDocType, ITreeItem, NodeListFilterData } from '@/api';
 import Card from '@/components/Card';
 import DragTree from '@/components/Drag/DragTree';
 import {
@@ -23,7 +17,10 @@ import {
   Stack,
   useTheme,
 } from '@mui/material';
-import { Icon, MenuSelect } from 'ct-mui';
+import { Icon } from '@ctzhian/ui';
+import Cascader from '@/components/Cascader';
+import { getApiV1NodeList } from '@/request/Node';
+import { DomainNodeListItemResp } from '@/request/types';
 import { useCallback, useEffect, useState } from 'react';
 import VersionPublish from '../release/components/VersionPublish';
 import DocAdd from './component/DocAdd';
@@ -34,6 +31,7 @@ import DocSummary from './component/DocSummary';
 import ImportDoc from './component/ImportDoc';
 import MoveDocs from './component/MoveDocs';
 import Summary from './component/Summary';
+import DocPropertiesModal from './component/DocPropertiesModal';
 
 const Content = () => {
   const { kb_id } = useAppSelector(state => state.config);
@@ -47,13 +45,11 @@ const Content = () => {
     published: 0,
     unpublished: 0,
   });
-  const [list, setList] = useState<NodeListItem[]>([]);
+  const [list, setList] = useState<DomainNodeListItemResp[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [data, setData] = useState<ITreeItem[]>([]);
-  const [opraData, setOpraData] = useState<NodeListItem[]>([]);
-  const [statusOpen, setStatusOpen] = useState<'private' | 'public' | null>(
-    null,
-  );
+  const [opraData, setOpraData] = useState<DomainNodeListItemResp[]>([]);
+  const [statusOpen, setStatusOpen] = useState<'delete' | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [moreSummaryOpen, setMoreSummaryOpen] = useState(false);
@@ -62,6 +58,8 @@ const Content = () => {
   const [publishIds, setPublishIds] = useState<string[]>([]);
   const [publishOpen, setPublishOpen] = useState(false);
   const [key, setKey] = useState<ImportDocType>('URL');
+  const [propertiesOpen, setPropertiesOpen] = useState(false);
+  const [isBatch, setIsBatch] = useState(false);
 
   const handleUrl = (item: ITreeItem, key: ImportDocType) => {
     setKey(key);
@@ -79,14 +77,15 @@ const Content = () => {
     setOpraData(list.filter(it => it.id === item.id));
   };
 
-  const handleStatus = (item: ITreeItem, status: 'public' | 'private') => {
-    setStatusOpen(status);
-    setOpraData(list.filter(it => it.id === item.id));
-  };
-
   const handlePublish = (item: ITreeItem) => {
     setPublishOpen(true);
     setPublishIds([item.id]);
+  };
+
+  const handleProperties = (item: ITreeItem) => {
+    setPropertiesOpen(true);
+    setOpraData(list.filter(it => it.id === item.id));
+    setIsBatch(false);
   };
 
   const menu = (opra: TreeMenuOptions): TreeMenuItem[] => {
@@ -170,24 +169,6 @@ const Content = () => {
         : []),
       ...(item.type === 2
         ? [
-            ...(item.visibility === 1
-              ? [
-                  {
-                    label: '设为公开',
-                    key: 'public',
-                    onClick: () => handleStatus(item, 'public'),
-                  },
-                ]
-              : []),
-            ...(item.visibility === 2
-              ? [
-                  {
-                    label: '设为私有',
-                    key: 'private',
-                    onClick: () => handleStatus(item, 'private'),
-                  },
-                ]
-              : []),
             ...(item.status === 1
               ? [
                   {
@@ -197,24 +178,33 @@ const Content = () => {
                   },
                 ]
               : []),
-            {
-              label: item.summary ? '查看摘要' : '生成摘要',
-              key: 'summary',
-              onClick: () => handleSummary(item),
-            },
+            // {
+            //   label: item.summary ? '查看摘要' : '生成摘要',
+            //   key: 'summary',
+            //   onClick: () => handleSummary(item),
+            // },
           ]
         : []),
       ...(!isEditing
         ? [{ label: '重命名', key: 'rename', onClick: renameItem }]
         : []),
       { label: '删除', key: 'delete', onClick: () => handleDelete(item) },
+      ...(item.type === 2
+        ? [
+            {
+              label: '文档属性',
+              key: 'properties',
+              onClick: () => handleProperties(item),
+            },
+          ]
+        : []),
     ];
   };
 
   const getData = useCallback(() => {
     const params: NodeListFilterData = { kb_id };
     if (search) params.search = search;
-    getNodeList(params).then(res => {
+    getApiV1NodeList(params).then(res => {
       setList(res || []);
       setPublish({
         unpublished: res.filter(it => it.status === 1).length,
@@ -285,7 +275,7 @@ const Content = () => {
           <Stack direction={'row'} alignItems={'center'} gap={2}>
             <DocSearch />
             <DocAdd refresh={getData} />
-            <MenuSelect
+            <Cascader
               list={[
                 {
                   key: 'batch',
@@ -342,7 +332,7 @@ const Content = () => {
                   setSelected([]);
                   setOpraData([]);
                 } else {
-                  setSelected(list.map(item => item.id));
+                  setSelected(list.map(item => item.id!));
                   setOpraData(list);
                 }
               }}
@@ -355,35 +345,12 @@ const Content = () => {
                 <Stack direction={'row'} alignItems={'center'} gap={1}>
                   <Button
                     size='small'
-                    sx={{ minWidth: 0, p: 0 }}
-                    onClick={() => {
-                      setStatusOpen('public');
-                      setOpraData(
-                        list.filter(item => selected.includes(item.id)),
-                      );
-                    }}
-                  >
-                    设为公开
-                  </Button>
-                  <Button
-                    size='small'
-                    sx={{ minWidth: 0, p: 0 }}
-                    onClick={() => {
-                      setStatusOpen('private');
-                      setOpraData(
-                        list.filter(item => selected.includes(item.id)),
-                      );
-                    }}
-                  >
-                    设为私有
-                  </Button>
-                  <Button
-                    size='small'
+                    color='primary'
                     sx={{ minWidth: 0, p: 0 }}
                     onClick={() => {
                       setMoreSummaryOpen(true);
                       setOpraData(
-                        list.filter(item => selected.includes(item.id)),
+                        list.filter(item => selected.includes(item.id!)),
                       );
                     }}
                   >
@@ -391,11 +358,12 @@ const Content = () => {
                   </Button>
                   <Button
                     size='small'
+                    color='primary'
                     sx={{ minWidth: 0, p: 0 }}
                     onClick={() => {
                       setMoveOpen(true);
                       setOpraData(
-                        list.filter(item => selected.includes(item.id)),
+                        list.filter(item => selected.includes(item.id!)),
                       );
                     }}
                   >
@@ -403,15 +371,30 @@ const Content = () => {
                   </Button>
                   <Button
                     size='small'
+                    color='primary'
                     sx={{ minWidth: 0, p: 0 }}
                     onClick={() => {
                       setDeleteOpen(true);
                       setOpraData(
-                        list.filter(item => selected.includes(item.id)),
+                        list.filter(item => selected.includes(item.id!)),
                       );
                     }}
                   >
                     批量删除
+                  </Button>
+                  <Button
+                    size='small'
+                    color='primary'
+                    sx={{ minWidth: 0, p: 0 }}
+                    onClick={() => {
+                      setPropertiesOpen(true);
+                      setIsBatch(true);
+                      setOpraData(
+                        list.filter(item => selected.includes(item.id!)),
+                      );
+                    }}
+                  >
+                    批量设置权限
                   </Button>
                 </Stack>
               </>
@@ -493,7 +476,7 @@ const Content = () => {
         }}
       />
       <DocStatus
-        status={statusOpen || 'public'}
+        status={statusOpen || 'delete'}
         data={opraData}
         kb_id={kb_id}
         open={!!statusOpen}
@@ -521,6 +504,20 @@ const Content = () => {
           setMoveOpen(false);
           setOpraData([]);
         }}
+      />
+      <DocPropertiesModal
+        open={propertiesOpen}
+        onCancel={() => {
+          setPropertiesOpen(false);
+          setOpraData([]);
+        }}
+        onOk={() => {
+          getData();
+          setPropertiesOpen(false);
+          setOpraData([]);
+        }}
+        data={opraData}
+        isBatch={isBatch}
       />
     </>
   );

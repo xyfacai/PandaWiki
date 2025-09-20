@@ -1,9 +1,11 @@
-import { getShareV1AppWebInfo } from '@/request/ShareApp';
+import ErrorComponent from '@/components/error';
 import StoreProvider from '@/provider';
+import { getShareV1AppWebInfo } from '@/request/ShareApp';
+import { getShareProV1AuthInfo } from '@/request/pro/ShareAuth';
 import { darkTheme, lightTheme } from '@/theme';
+import { ThemeProvider } from '@ctzhian/ui';
 import { Box } from '@mui/material';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
-import { ThemeProvider } from 'ct-mui';
 import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import { headers } from 'next/headers';
@@ -60,27 +62,57 @@ const Layout = async ({
 }>) => {
   const headersList = await headers();
   const userAgent = headersList.get('user-agent');
+  let error: any = null;
 
-  const kbDetail: any = await getShareV1AppWebInfo();
+  const [kbDetailResolve, authInfoResolve] = await Promise.allSettled([
+    getShareV1AppWebInfo(),
+    // @ts-ignore
+    getShareProV1AuthInfo({}),
+  ]);
+
+  const authInfo: any =
+    authInfoResolve.status === 'fulfilled' ? authInfoResolve.value : undefined;
+  const kbDetail: any =
+    kbDetailResolve.status === 'fulfilled' ? kbDetailResolve.value : undefined;
+
+  if (
+    authInfoResolve.status === 'rejected' &&
+    authInfoResolve.reason.code === 403
+  ) {
+    error = authInfoResolve.reason;
+  }
 
   const themeMode = kbDetail?.settings?.theme_mode || 'light';
 
-  const { isMobile } = getSelectorsByUserAgent(userAgent || '');
+  const { isMobile } = getSelectorsByUserAgent(userAgent || '') || {
+    isMobile: false,
+  };
 
   return (
     <html lang='en'>
-      <body className={`${gilory.variable}`}>
-        <ThemeProvider theme={themeMode === 'dark' ? darkTheme : lightTheme}>
-          <AppRouterCacheProvider>
+      <body
+        className={`${gilory.variable} ${themeMode === 'dark' ? 'dark' : ''}`}
+      >
+        <AppRouterCacheProvider>
+          <ThemeProvider theme={themeMode === 'dark' ? darkTheme : lightTheme}>
             <StoreProvider
               kbDetail={kbDetail}
               themeMode={themeMode || 'light'}
               mobile={isMobile}
+              authInfo={authInfo}
             >
-              <Box sx={{ bgcolor: 'background.paper' }}>{children}</Box>
+              <Box
+                sx={{
+                  bgcolor: 'background.paper',
+                  height: error ? '100vh' : 'auto',
+                }}
+                id='app-theme-root'
+              >
+                {error ? <ErrorComponent error={error} /> : children}
+              </Box>
             </StoreProvider>
-          </AppRouterCacheProvider>
-        </ThemeProvider>
+          </ThemeProvider>
+        </AppRouterCacheProvider>
       </body>
     </html>
   );

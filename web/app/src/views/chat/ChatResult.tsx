@@ -28,7 +28,7 @@ import {
   Stack,
   TextField,
 } from '@mui/material';
-import { message } from 'ct-mui';
+import { message } from '@ctzhian/ui';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -164,7 +164,7 @@ const ChatResult = ({
                 bgcolor:
                   themeMode === 'dark'
                     ? 'background.default'
-                    : 'background.paper2',
+                    : 'background.paper3',
               }}
             >
               <AccordionSummary
@@ -217,7 +217,8 @@ const ChatResult = ({
                   mt: 2,
                 }}
               >
-                基于 AI 生成，仅供参考。
+                <Box>{kbDetail?.settings?.disclaimer_settings?.content}</Box>
+
                 <Stack direction='row' gap={3} alignItems='center'>
                   <span>生成于 {dayjs(item.update_time).fromNow()}</span>
 
@@ -297,7 +298,7 @@ const ChatResult = ({
         <Box
           sx={{
             bgcolor:
-              themeMode === 'dark' ? 'background.paper2' : 'background.default',
+              themeMode === 'dark' ? 'background.paper3' : 'background.default',
             px: 3,
             py: 2,
             borderRadius: '10px',
@@ -318,7 +319,7 @@ const ChatResult = ({
                 transition: 'all 0.5s ease-in-out',
                 bgcolor:
                   themeMode === 'dark'
-                    ? 'background.paper2'
+                    ? 'background.paper3'
                     : 'background.default',
               },
               textarea: {

@@ -12,11 +12,10 @@ import {
   Button,
   IconButton,
   MenuItem,
-  Select,
   Stack,
   TextField,
 } from '@mui/material';
-import { CusTabs, Icon, Message, Modal } from 'ct-mui';
+import { CusTabs, Icon, message, Modal } from '@ctzhian/ui';
 import dayjs from 'dayjs';
 import { useState } from 'react';
 import LottieIcon from '../LottieIcon';
@@ -59,7 +58,7 @@ const AuthTypeModal = ({
 
     postApiV1License(params)
       .then(() => {
-        Message.success('激活成功');
+        message.success('激活成功');
         setUpdateOpen(false);
         setCode('');
         setFile(undefined);
@@ -85,9 +84,9 @@ const AuthTypeModal = ({
           <Stack direction={'row'} alignItems={'center'}>
             <Box sx={{ width: 120, flexShrink: 0 }}>当前版本</Box>
             <Stack direction={'row'} alignItems={'center'} gap={2}>
-              <Box sx={{ fontFamily: 'GBold', minWidth: 50 }}>{curVersion}</Box>
+              <Box sx={{ fontWeight: 700, minWidth: 50 }}>{curVersion}</Box>
               {latestVersion === `v${curVersion}` ? (
-                <Box sx={{ color: 'text.auxiliary', fontSize: 12 }}>
+                <Box sx={{ color: 'text.tertiary', fontSize: 12 }}>
                   已是最新版本，无需更新
                 </Box>
               ) : (
@@ -192,15 +191,19 @@ const AuthTypeModal = ({
               )}
             </Stack>
           </Stack>
-          {license.edition > 0 && (
+          {license.edition! > 0 && (
             <Box>
               <Stack direction={'row'} alignItems={'center'}>
                 <Box sx={{ width: 120, flexShrink: 0 }}>授权时间</Box>
-                <Box>{dayjs.unix(license.started_at).format('YYYY-MM-DD')}</Box>
+                <Box>
+                  {dayjs.unix(license.started_at!).format('YYYY-MM-DD')}
+                </Box>
                 <Box sx={{ mx: 1 }}>~</Box>
-                <Box>{dayjs.unix(license.expired_at).format('YYYY-MM-DD')}</Box>
+                <Box>
+                  {dayjs.unix(license.expired_at!).format('YYYY-MM-DD')}
+                </Box>
               </Stack>
-              {dayjs.unix(license.expired_at).diff(dayjs(), 'day') < 0 && (
+              {dayjs.unix(license.expired_at!).diff(dayjs(), 'day') < 0 && (
                 <Box
                   sx={{
                     color: 'error.main',

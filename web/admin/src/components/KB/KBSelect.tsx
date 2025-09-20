@@ -11,10 +11,11 @@ import {
   Select,
   Stack,
 } from '@mui/material';
-import { Ellipsis, Icon, Message } from 'ct-mui';
+import { Ellipsis, Icon, message } from '@ctzhian/ui';
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import KBDelete from './KBDelete';
+import { ConstsUserRole } from '@/request/types';
 
 const KBSelect = () => {
   const location = useLocation();
@@ -22,14 +23,16 @@ const KBSelect = () => {
 
   const dispatch = useAppDispatch();
   const [_, setSearchParams] = useURLSearchParams();
-  const { kb_id, kbList, license } = useAppSelector(state => state.config);
+  const { kb_id, kbList, license, user } = useAppSelector(
+    state => state.config,
+  );
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [opraData, setOpraData] = useState<KnowledgeBaseListItem | null>(null);
 
   return (
     <>
-      {kbList.length > 0 && (
+      {(kbList || []).length > 0 && (
         <Select
           value={kb_id}
           size='small'
@@ -38,6 +41,7 @@ const KBSelect = () => {
             pr: 2,
             height: 32,
             fontSize: 14,
+            fontFamily: 'G',
             transition: 'all 0.3s',
             '.MuiSelect-select': {
               width: 'calc(100% + 48px)',
@@ -59,7 +63,7 @@ const KBSelect = () => {
             if (e.target.value === kb_id || !e.target.value) return;
             dispatch(setKbId(e.target.value as string));
             if (resetPagination) setSearchParams({ page: '1', pageSize: '20' });
-            Message.success('切换成功');
+            message.success('切换成功');
           }}
           IconComponent={({ className, ...rest }) => {
             return (
@@ -109,28 +113,31 @@ const KBSelect = () => {
               height: 40,
               mb: 0.5,
               borderRadius: '5px',
-              bgcolor: 'background.paper2',
+              bgcolor: 'background.paper3',
               '&:hover': {
                 bgcolor: custom.selectedMenuItemBgColor,
               },
             }}
             fullWidth
             disabled={
-              (license.edition === 0 && kbList.length >= 1) ||
-              (license.edition === 1 && kbList.length >= 3)
+              (license.edition === 0 && (kbList || []).length >= 1) ||
+              (license.edition === 1 && (kbList || []).length >= 3) ||
+              user.role === ConstsUserRole.UserRoleUser
             }
             onClick={event => {
               event.stopPropagation();
               dispatch(setKbC(true));
             }}
           >
-            创建新知识库
+            创建新 Wiki 站
           </Button>
-          {kbList.map(item => (
+          {(kbList || []).map(item => (
             <MenuItem
               key={item.id}
               value={item.id}
               sx={{
+                fontFamily: 'G',
+                height: '40px',
                 '&:hover .hover-del-space-icon': { display: 'inline-flex' },
               }}
             >
@@ -146,25 +153,27 @@ const KBSelect = () => {
                 />
                 <Ellipsis>{item.name}</Ellipsis>
                 <Box sx={{ width: 10 }}></Box>
-                <IconButton
-                  size='small'
-                  className='hover-del-space-icon'
-                  sx={{ display: 'none' }}
-                >
-                  <Icon
-                    type='icon-shanchu'
-                    sx={{
-                      fontSize: 14,
-                      color: 'text.auxiliary',
-                      flexShrink: 0,
-                    }}
-                    onClick={event => {
-                      event.stopPropagation();
-                      setOpraData(item);
-                      setDeleteOpen(true);
-                    }}
-                  />
-                </IconButton>
+                {user.role !== ConstsUserRole.UserRoleUser && (
+                  <IconButton
+                    size='small'
+                    className='hover-del-space-icon'
+                    sx={{ display: 'none' }}
+                  >
+                    <Icon
+                      type='icon-shanchu'
+                      sx={{
+                        fontSize: 14,
+                        color: 'text.tertiary',
+                        flexShrink: 0,
+                      }}
+                      onClick={event => {
+                        event.stopPropagation();
+                        setOpraData(item);
+                        setDeleteOpen(true);
+                      }}
+                    />
+                  </IconButton>
+                )}
               </Stack>
             </MenuItem>
           ))}

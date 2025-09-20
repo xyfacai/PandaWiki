@@ -4,7 +4,7 @@ import { ChunkResultItem, ConversationItem } from '@/assets/type';
 import { useStore } from '@/provider';
 import SSEClient from '@/utils/fetch';
 import { Box, Stack } from '@mui/material';
-import { message } from 'ct-mui';
+import { message } from '@ctzhian/ui';
 import dayjs from 'dayjs';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ChatResult from './ChatResult';
@@ -17,7 +17,7 @@ const Chat = ({
 }: {
   conversation: ConversationItem[];
 }) => {
-  const { mobile = false, catalogShow, catalogWidth } = useStore();
+  const { mobile = false, kbDetail } = useStore();
 
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const sseClientRef = useRef<SSEClient<{
@@ -55,11 +55,27 @@ const Chat = ({
     setThinking(1);
     setIsUserScrolling(false);
 
+    let token = '';
+
+    const Cap = (await import('@cap.js/widget')).default;
+    const cap = new Cap({
+      apiEndpoint: '/share/v1/captcha/',
+    });
+    try {
+      const solution = await cap.solve();
+      token = solution.token;
+    } catch (error) {
+      message.error('验证失败');
+      console.log(error, 'error---------');
+      return;
+    }
+
     const reqData = {
       message: q,
       nonce: '',
       conversation_id: '',
       app_type: 1,
+      captcha_token: token,
     };
     if (conversationId) reqData.conversation_id = conversationId;
     if (nonce) reqData.nonce = nonce;
@@ -131,6 +147,12 @@ const Chat = ({
       );
     }
   };
+
+  useEffect(() => {
+    // @ts-ignore
+    window.CAP_CUSTOM_WASM_URL =
+      window.location.origin + '/cap@0.0.6/cap_wasm.min.js';
+  }, []);
 
   const onSearch = (q: string, reset: boolean = false) => {
     if (loading || !q.trim()) return;
@@ -229,7 +251,7 @@ const Chat = ({
 
   if (mobile) {
     return (
-      <Box sx={{ pt: 12, minHeight: '100vh', position: 'relative' }}>
+      <Box sx={{ pt: 4, minHeight: '100vh', position: 'relative' }}>
         <ChatTab showType={showType} setShowType={setShowType} />
         <Box sx={{ mx: 3 }}>
           {showType === 'chat' ? (
@@ -255,13 +277,11 @@ const Chat = ({
 
   return (
     <Box
-      style={{
-        marginLeft: catalogShow ? `${catalogWidth!}px` : '16px',
-      }}
       sx={{
-        pt: 12,
+        pt: 4,
         px: 10,
         minHeight: '100vh',
+        flex: 1,
       }}
     >
       <Stack

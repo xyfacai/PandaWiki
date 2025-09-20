@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/chaitin/panda-wiki/consts"
 )
 
 type AppType uint8
@@ -19,6 +21,7 @@ const (
 	AppTypeWechatServiceBot
 	AppTypeDisCordBot
 	AppTypeWechatOfficialAccount
+	AppTypeOpenAIAPI
 )
 
 var AppTypes = []AppType{
@@ -30,6 +33,32 @@ var AppTypes = []AppType{
 	AppTypeWechatServiceBot,
 	AppTypeDisCordBot,
 	AppTypeWechatOfficialAccount,
+	AppTypeOpenAIAPI,
+}
+
+func (t AppType) ToSourceType() consts.SourceType {
+	switch t {
+	case AppTypeWeb:
+		return ""
+	case AppTypeWidget:
+		return consts.SourceTypeWidget
+	case AppTypeDingTalkBot:
+		return consts.SourceTypeDingtalkBot
+	case AppTypeFeishuBot:
+		return consts.SourceTypeFeishuBot
+	case AppTypeWechatBot:
+		return consts.SourceTypeWechatBot
+	case AppTypeWechatServiceBot:
+		return consts.SourceTypeWechatServiceBot
+	case AppTypeDisCordBot:
+		return consts.SourceTypeDiscordBot
+	case AppTypeWechatOfficialAccount:
+		return consts.SourceTypeWechatOfficialAccount
+	case AppTypeOpenAIAPI:
+		return consts.SourceTypeOpenAIAPI
+	default:
+		return ""
+	}
 }
 
 type App struct {
@@ -108,6 +137,46 @@ type AppSettings struct {
 	DocumentFeedBackIsEnabled *bool `json:"document_feedback_is_enabled,omitempty"`
 	// AI feedback
 	AIFeedbackSettings AIFeedbackSettings `json:"ai_feedback_settings"`
+	// WebAppCustomStyle
+	WebAppCustomSettings WebAppCustomSettings `json:"web_app_custom_style"`
+	// OpenAI API Bot settings
+	OpenAIAPIBotSettings OpenAIAPIBotSettings `json:"openai_api_bot_settings"`
+	// Disclaimer Settings
+	DisclaimerSettings DisclaimerSettings `json:"disclaimer_settings"`
+
+	WatermarkContent   string                  `json:"watermark_content"`
+	WatermarkSetting   consts.WatermarkSetting `json:"watermark_setting" validate:"omitempty,oneof='' hidden visible"`
+	CopySetting        consts.CopySetting      `json:"copy_setting" validate:"omitempty,oneof='' append disabled"`
+	ContributeSettings ContributeSettings      `json:"contribute_settings"`
+}
+
+type DisclaimerSettings struct {
+	Content *string `json:"content"`
+}
+
+type ContributeSettings struct {
+	IsEnable bool `json:"is_enable"`
+}
+
+type OpenAIAPIBotSettings struct {
+	IsEnabled bool   `json:"is_enabled"`
+	SecretKey string `json:"secret_key"`
+}
+
+type WebAppCustomSettings struct {
+	AllowThemeSwitching *bool                `json:"allow_theme_switching"`
+	HeaderPlaceholder   string               `json:"header_search_placeholder"`
+	SocialMediaAccounts []SocialMediaAccount `json:"social_media_accounts"`
+	ShowBrandInfo       *bool                `json:"show_brand_info"`
+	FooterShowIntro     *bool                `json:"footer_show_intro"`
+}
+
+type SocialMediaAccount struct {
+	Channel string `json:"channel"`
+	Text    string `json:"text"`
+	Link    string `json:"link"`
+	Icon    string `json:"icon"`
+	Phone   string `json:"phone"`
 }
 
 type WebAppCommentSettings struct {
@@ -121,7 +190,8 @@ type AIFeedbackSettings struct {
 }
 
 type ThemeAndStyle struct {
-	BGImage string `json:"bg_image,omitempty"`
+	BGImage  string `json:"bg_image,omitempty"`
+	DocWidth string `json:"doc_width,omitempty"`
 }
 
 type CatalogSettings struct {
@@ -243,7 +313,19 @@ type AppSettingsResp struct {
 	// document feedback
 	DocumentFeedBackIsEnabled *bool `json:"document_feedback_is_enabled,omitempty"`
 	// AI feedback
-	AIFeedbackSettings AIFeedbackSettings `json:"ai_feedback_settings,omitempty"`
+	AIFeedbackSettings AIFeedbackSettings `json:"ai_feedback_settings"`
+	// WebAppCustomStyle
+	WebAppCustomSettings WebAppCustomSettings `json:"web_app_custom_style"`
+
+	WatermarkContent   string                  `json:"watermark_content"`
+	WatermarkSetting   consts.WatermarkSetting `json:"watermark_setting"`
+	CopySetting        consts.CopySetting      `json:"copy_setting"`
+	ContributeSettings ContributeSettings      `json:"contribute_settings"`
+
+	// OpenAI API settings
+	OpenAIAPIBotSettings OpenAIAPIBotSettings `json:"openai_api_bot_settings"`
+	// Disclaimer Settings
+	DisclaimerSettings DisclaimerSettings `json:"disclaimer_settings"`
 }
 
 func (s *AppSettingsResp) Scan(value any) error {
@@ -260,6 +342,7 @@ func (s AppSettingsResp) Value() (driver.Value, error) {
 
 type UpdateAppReq struct {
 	Name     *string      `json:"name"`
+	KbID     string       `json:"kb_id"`
 	Settings *AppSettings `json:"settings" gorm:"type:jsonb"`
 }
 

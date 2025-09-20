@@ -1,9 +1,6 @@
-import {
-  createNode,
-  ImportDocListItem,
-  ImportDocProps,
-  parseWikijs,
-} from '@/api';
+import { ImportDocListItem, ImportDocProps } from '@/api';
+import { postApiV1Node } from '@/request/Node';
+import { postApiV1CrawlerWikijsAnalysisExportFile } from '@/request/Crawler';
 import Upload from '@/components/UploadFile/Drag';
 import { useAppSelector } from '@/store';
 import { formatByte } from '@/utils';
@@ -22,7 +19,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
-import { Ellipsis, Icon, Message, Modal } from 'ct-mui';
+import { Ellipsis, Icon, message, Modal } from '@ctzhian/ui';
 import { useState } from 'react';
 import { FileRejection } from 'react-dropzone';
 
@@ -98,16 +95,16 @@ const WikijsImport = ({
     setCurrentFileIndex(0);
     try {
       for (let i = 0; i < acceptedFiles.length; i++) {
-        const formData = new FormData();
-        formData.append('file', acceptedFiles[i]);
-        formData.append('kb_id', kb_id);
-        const pages = await parseWikijs(formData);
+        const pages = await postApiV1CrawlerWikijsAnalysisExportFile({
+          file: acceptedFiles[i],
+          kb_id,
+        });
         for (const page of pages) {
           setItems(prev => [
             {
-              url: page.id,
-              title: page.title,
-              content: page.content,
+              url: page.id! as unknown as string,
+              title: page.title!,
+              content: page.content!,
               success: -1,
               id: '',
             },
@@ -131,7 +128,7 @@ const WikijsImport = ({
       handleFile();
     } else if (step === 'import') {
       if (selectIds.length === 0) {
-        Message.error('请选择要导入的文档');
+        message.error('请选择要导入的文档');
         return;
       }
       setItems(prev => prev.map(item => ({ ...item, success: 0 })));
@@ -142,16 +139,16 @@ const WikijsImport = ({
           if (!curItem || (curItem.id !== '' && curItem.id !== '-1')) {
             continue;
           }
-          const res = await createNode({
+          const res = await postApiV1Node({
             name: curItem?.title || '',
             content: curItem?.content || '',
-            parent_id: parentId,
+            parent_id: parentId || undefined,
             type: 2,
             kb_id,
           });
           const index = newItems.findIndex(item => item.url === url);
           if (index !== -1) {
-            Message.success(newItems[index].title + '导入成功');
+            message.success(newItems[index].title + '导入成功');
             newItems[index] = {
               ...newItems[index],
               success: 1,
@@ -161,7 +158,7 @@ const WikijsImport = ({
         } catch (error) {
           const index = newItems.findIndex(item => item.url === url);
           if (index !== -1) {
-            Message.error(newItems[index].title + '导入失败');
+            message.error(newItems[index].title + '导入失败');
             newItems[index] = {
               ...newItems[index],
               success: 1,
@@ -258,7 +255,7 @@ const WikijsImport = ({
                         borderBottom: '1px dashed',
                         borderColor: 'divider',
                         ':hover': {
-                          backgroundColor: 'background.paper2',
+                          backgroundColor: 'background.paper3',
                         },
                       }}
                       secondaryAction={
@@ -336,7 +333,7 @@ const WikijsImport = ({
                   px: 2,
                   py: 1,
                   cursor: 'pointer',
-                  bgcolor: 'background.paper2',
+                  bgcolor: 'background.paper3',
                 }}
               >
                 <Stack
@@ -349,7 +346,7 @@ const WikijsImport = ({
                     type='icon-shuaxin'
                     sx={{
                       fontSize: 18,
-                      color: 'text.auxiliary',
+                      color: 'text.tertiary',
                       animation: 'loadingRotate 1s linear infinite',
                     }}
                   />
@@ -373,7 +370,7 @@ const WikijsImport = ({
                   borderBottom: idx === items.length - 1 ? 'none' : '1px solid',
                   borderColor: 'divider',
                   ':hover': {
-                    bgcolor: 'background.paper2',
+                    bgcolor: 'background.paper3',
                   },
                 }}
               >
@@ -382,7 +379,7 @@ const WikijsImport = ({
                     type='icon-shuaxin'
                     sx={{
                       fontSize: 18,
-                      color: 'text.auxiliary',
+                      color: 'text.tertiary',
                       animation: 'loadingRotate 1s linear infinite',
                     }}
                   />
@@ -430,7 +427,7 @@ const WikijsImport = ({
                     {item.title || item.url}
                   </Ellipsis>
                   {item.content && (
-                    <Ellipsis sx={{ fontSize: 12, color: 'text.auxiliary' }}>
+                    <Ellipsis sx={{ fontSize: 12, color: 'text.tertiary' }}>
                       {item.content}
                     </Ellipsis>
                   )}
@@ -447,15 +444,15 @@ const WikijsImport = ({
                             : it,
                         ),
                       );
-                      createNode({
+                      postApiV1Node({
                         name: item.title,
                         content: item.content,
-                        parent_id: parentId,
+                        parent_id: parentId || undefined,
                         type: 2,
                         kb_id,
                       })
                         .then(res => {
-                          Message.success(item.title + '导入成功');
+                          message.success(item.title + '导入成功');
                           setItems(prev =>
                             prev.map(it =>
                               it.url === item.url
@@ -465,7 +462,7 @@ const WikijsImport = ({
                           );
                         })
                         .catch(() => {
-                          Message.error(item.title + '导入失败');
+                          message.error(item.title + '导入失败');
                         });
                     }}
                   >

@@ -2,14 +2,7 @@ package usecase
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"net/url"
-	"path"
-	"slices"
-	"strings"
 	"time"
 
 	"github.com/chaitin/panda-wiki/config"
@@ -18,11 +11,8 @@ import (
 	"github.com/chaitin/panda-wiki/repo/mq"
 	"github.com/chaitin/panda-wiki/repo/pg"
 	"github.com/chaitin/panda-wiki/store/rag"
-	"github.com/chaitin/panda-wiki/utils"
 	"github.com/cloudwego/eino/schema"
-	"github.com/google/generative-ai-go/genai"
 	"github.com/google/uuid"
-	"google.golang.org/api/option"
 )
 
 type ModelUsecase struct {
@@ -46,20 +36,15 @@ func NewModelUsecase(modelRepo *pg.ModelRepository, nodeRepo *pg.NodeRepository,
 		kbRepo:    kbRepo,
 	}
 	if err := u.initEmbeddingAndRerankModel(context.Background()); err != nil {
-		logger.Error("init embedding & rerank model failed", log.Any("error", err))
+		logger.Error("init embedding & rerank & analysis model failed", log.Any("error", err))
 	}
 	return u
 }
 
 func (u *ModelUsecase) initEmbeddingAndRerankModel(ctx context.Context) error {
-	// FIXME: just for test, remove it later
-	// shared_key by BaiZhiCloud
-	sharedKey := "sk-r8tmBtcU1JotPDPnlgZLOY4Z6Dbb7FufcSeTkFpRWA5v4Llr"
-	baseURL := "https://model-square.app.baizhi.cloud/v1"
-
 	isReady := false
 	// wait for raglite to be ready
-	for i := 0; i < 10; i++ {
+	for range 60 {
 		models, err := u.ragStore.GetModelList(ctx)
 		if err != nil {
 			u.logger.Error("wait for raglite to be ready", log.Any("error", err))
@@ -68,6 +53,19 @@ func (u *ModelUsecase) initEmbeddingAndRerankModel(ctx context.Context) error {
 		}
 		isReady = true
 		if len(models) > 0 {
+			// init analysis model for old user
+			hasAnalysis := false
+			for _, m := range models {
+				if m.Type == domain.ModelTypeAnalysis {
+					hasAnalysis = true
+					break
+				}
+			}
+			if !hasAnalysis {
+				if err := u.createAndSyncModelToRAGLite(ctx, "qwen2.5-3b-instruct", domain.ModelTypeAnalysis); err != nil {
+					return fmt.Errorf("add analysis model err: %v", err)
+				}
+			}
 			return nil
 		} else {
 			break
@@ -76,41 +74,42 @@ func (u *ModelUsecase) initEmbeddingAndRerankModel(ctx context.Context) error {
 	if !isReady {
 		return fmt.Errorf("raglite is not ready")
 	}
-	embeddingModel := &domain.Model{
+
+	if err := u.createAndSyncModelToRAGLite(ctx, "bge-m3", domain.ModelTypeEmbedding); err != nil {
+		return fmt.Errorf("create and sync model err: %v", err)
+	}
+	if err := u.createAndSyncModelToRAGLite(ctx, "bge-reranker-v2-m3", domain.ModelTypeRerank); err != nil {
+		return fmt.Errorf("create and sync model err: %v", err)
+	}
+	if err := u.createAndSyncModelToRAGLite(ctx, "qwen2.5-3b-instruct", domain.ModelTypeAnalysis); err != nil {
+		return fmt.Errorf("create and sync model err: %v", err)
+	}
+	return nil
+}
+
+func (u *ModelUsecase) createAndSyncModelToRAGLite(ctx context.Context, modelName string, modelType domain.ModelType) error {
+	// FIXME: just for test, remove it later
+	// shared_key by BaiZhiCloud
+	sharedKey := "sk-r8tmBtcU1JotPDPnlgZLOY4Z6Dbb7FufcSeTkFpRWA5v4Llr"
+	baseURL := "https://model-square.app.baizhi.cloud/v1"
+	model := &domain.Model{
 		ID:         uuid.New().String(),
 		Provider:   domain.ModelProviderBrandBaiZhiCloud,
-		Model:      "bge-m3",
+		Model:      modelName,
 		APIKey:     sharedKey,
 		APIHeader:  "",
 		BaseURL:    baseURL,
+		IsActive:   true,
 		APIVersion: "",
-		Type:       domain.ModelTypeEmbedding,
+		Type:       modelType,
 	}
-	id, err := u.ragStore.AddModel(ctx, embeddingModel)
+	id, err := u.ragStore.AddModel(ctx, model)
 	if err != nil {
-		return fmt.Errorf("init embedding model failed: %w", err)
+		return fmt.Errorf("init %s model failed: %w", modelName, err)
 	}
-	embeddingModel.ID = id
-	if err := u.modelRepo.Create(ctx, embeddingModel); err != nil {
-		return fmt.Errorf("init embedding model failed: %w", err)
-	}
-	rerankModel := &domain.Model{
-		ID:         uuid.New().String(),
-		Provider:   domain.ModelProviderBrandBaiZhiCloud,
-		Model:      "bge-reranker-v2-m3",
-		APIKey:     sharedKey,
-		APIHeader:  "",
-		BaseURL:    baseURL,
-		APIVersion: "",
-		Type:       domain.ModelTypeRerank,
-	}
-	id, err = u.ragStore.AddModel(ctx, rerankModel)
-	if err != nil {
-		return fmt.Errorf("init rerank model failed: %w", err)
-	}
-	rerankModel.ID = id
-	if err := u.modelRepo.Create(ctx, rerankModel); err != nil {
-		return fmt.Errorf("init rerank model failed: %w", err)
+	model.ID = id
+	if err := u.modelRepo.Create(ctx, model); err != nil {
+		return fmt.Errorf("create %s model failed: %w", modelName, err)
 	}
 	return nil
 }
@@ -119,7 +118,7 @@ func (u *ModelUsecase) Create(ctx context.Context, model *domain.Model) error {
 	if err := u.modelRepo.Create(ctx, model); err != nil {
 		return err
 	}
-	if model.Type == domain.ModelTypeEmbedding || model.Type == domain.ModelTypeRerank {
+	if model.Type == domain.ModelTypeEmbedding || model.Type == domain.ModelTypeRerank || model.Type == domain.ModelTypeAnalysis {
 		if id, err := u.ragStore.AddModel(ctx, model); err != nil {
 			return err
 		} else {
@@ -176,22 +175,26 @@ func (u *ModelUsecase) TriggerUpsertRecords(ctx context.Context) error {
 	return nil
 }
 
-func (u *ModelUsecase) Get(ctx context.Context, id string) (*domain.ModelDetailResp, error) {
-	return u.modelRepo.Get(ctx, id)
-}
-
 func (u *ModelUsecase) Update(ctx context.Context, req *domain.UpdateModelReq) error {
 	if err := u.modelRepo.Update(ctx, req); err != nil {
 		return err
 	}
-	if req.Type == domain.ModelTypeEmbedding || req.Type == domain.ModelTypeRerank {
-		if err := u.ragStore.UpdateModel(ctx, &domain.Model{
-			ID:      req.ID,
-			Model:   req.Model,
-			Type:    req.Type,
-			BaseURL: req.BaseURL,
-			APIKey:  req.APIKey,
-		}); err != nil {
+	if req.Type == domain.ModelTypeEmbedding || req.Type == domain.ModelTypeRerank || req.Type == domain.ModelTypeAnalysis {
+		updateModel := &domain.Model{
+			ID:       req.ID,
+			Model:    req.Model,
+			Type:     req.Type,
+			BaseURL:  req.BaseURL,
+			APIKey:   req.APIKey,
+			IsActive: true,
+		}
+		if req.Parameters != nil {
+			updateModel.Parameters = *req.Parameters
+		}
+		if req.Type == domain.ModelTypeAnalysis && req.IsActive != nil {
+			updateModel.IsActive = *req.IsActive
+		}
+		if err := u.ragStore.UpdateModel(ctx, updateModel); err != nil {
 			return err
 		}
 	}
@@ -207,199 +210,4 @@ func (u *ModelUsecase) GetChatModel(ctx context.Context) (*domain.Model, error) 
 
 func (u *ModelUsecase) UpdateUsage(ctx context.Context, modelID string, usage *schema.TokenUsage) error {
 	return u.modelRepo.UpdateUsage(ctx, modelID, usage)
-}
-
-func (u *ModelUsecase) GetUserModelList(ctx context.Context, req *domain.GetProviderModelListReq) (*domain.GetProviderModelListResp, error) {
-	switch provider := domain.ModelProvider(req.Provider); provider {
-	case domain.ModelProviderBrandMoonshot,
-		domain.ModelProviderBrandDeepSeek,
-		domain.ModelProviderBrandAzureOpenAI,
-		domain.ModelProviderBrandVolcengine,
-		domain.ModelProviderBrandZhiPu:
-		return &domain.GetProviderModelListResp{
-			Models: domain.ModelProviderBrandModelsList[domain.ModelProvider(req.Provider)],
-		}, nil
-	case domain.ModelProviderBrandGemini:
-		client, err := genai.NewClient(ctx, option.WithAPIKey(req.APIKey))
-		if err != nil {
-			return nil, err
-		}
-		defer client.Close()
-
-		modelsList := make([]domain.ProviderModelListItem, 0)
-		modelsIter := client.ListModels(ctx)
-		for {
-			model, err := modelsIter.Next()
-			if err != nil {
-				break
-			}
-
-			if !slices.Contains(model.SupportedGenerationMethods, "generateContent") {
-				continue
-			}
-
-			if !strings.Contains(model.Name, "gemini") {
-				continue
-			}
-
-			name, _ := strings.CutPrefix(model.Name, "models/")
-			modelsList = append(modelsList, domain.ProviderModelListItem{
-				Model: name,
-			})
-		}
-
-		if len(modelsList) == 0 {
-			return nil, fmt.Errorf("failed to get gemini models")
-		}
-
-		return &domain.GetProviderModelListResp{
-			Models: modelsList,
-		}, nil
-
-	case domain.ModelProviderBrandOpenAI, domain.ModelProviderBrandHunyuan, domain.ModelProviderBrandBaiLian:
-		u, err := url.Parse(req.BaseURL)
-		if err != nil {
-			return nil, err
-		}
-		u.Path = path.Join(u.Path, "/models")
-		request, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
-		if err != nil {
-			return nil, err
-		}
-		request.Header.Set("Authorization", fmt.Sprintf("Bearer %s", req.APIKey))
-		resp, err := http.DefaultClient.Do(request)
-		if err != nil {
-			return nil, err
-		}
-		if resp.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("failed to get models: %s", resp.Status)
-		}
-		defer resp.Body.Close()
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
-		}
-		type OpenAIResp struct {
-			Object string `json:"object"`
-			Data   []struct {
-				ID string `json:"id"`
-			} `json:"data"`
-		}
-		var models OpenAIResp
-		err = json.Unmarshal(body, &models)
-		if err != nil {
-			return nil, err
-		}
-		modelsList := make([]domain.ProviderModelListItem, 0)
-		for _, model := range models.Data {
-			modelsList = append(modelsList, domain.ProviderModelListItem{
-				Model: model.ID,
-			})
-		}
-		return &domain.GetProviderModelListResp{
-			Models: modelsList,
-		}, nil
-	case domain.ModelProviderBrandOllama:
-		// get from ollama http://10.10.16.24:11434/api/tags
-		u, err := url.Parse(req.BaseURL)
-		if err != nil {
-			return nil, err
-		}
-		u.Path = "/api/tags"
-		request, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
-		if err != nil {
-			return nil, err
-		}
-		if req.APIHeader != "" {
-			headers := utils.GetHeaderMap(req.APIHeader)
-			for k, v := range headers {
-				request.Header.Set(k, v)
-			}
-		}
-		resp, err := http.DefaultClient.Do(request)
-		if err != nil {
-			return nil, err
-		}
-		defer resp.Body.Close()
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
-		}
-		var models domain.GetProviderModelListResp
-		err = json.Unmarshal(body, &models)
-		if err != nil {
-			return nil, err
-		}
-		return &models, nil
-	case domain.ModelProviderBrandSiliconFlow, domain.ModelProviderBrandBaiZhiCloud:
-		if req.Type == domain.ModelTypeEmbedding || req.Type == domain.ModelTypeRerank {
-			if provider == domain.ModelProviderBrandBaiZhiCloud {
-				if req.Type == domain.ModelTypeEmbedding {
-					return &domain.GetProviderModelListResp{
-						Models: []domain.ProviderModelListItem{
-							{
-								Model: "bge-m3",
-							},
-						},
-					}, nil
-				} else {
-					return &domain.GetProviderModelListResp{
-						Models: []domain.ProviderModelListItem{
-							{
-								Model: "bge-reranker-v2-m3",
-							},
-						},
-					}, nil
-				}
-			}
-		}
-		u, err := url.Parse(req.BaseURL)
-		if err != nil {
-			return nil, err
-		}
-		u.Path = "/v1/models"
-		q := u.Query()
-		q.Set("type", "text")
-		q.Set("sub_type", "chat")
-		u.RawQuery = q.Encode()
-		request, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
-		if err != nil {
-			return nil, err
-		}
-		request.Header.Set("Authorization", fmt.Sprintf("Bearer %s", req.APIKey))
-		resp, err := http.DefaultClient.Do(request)
-		if err != nil {
-			return nil, err
-		}
-		defer resp.Body.Close()
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
-		}
-		if resp.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("failed to get models: %s", resp.Status)
-		}
-		type SiliconFlowModelResp struct {
-			Object string `json:"object"`
-			Data   []struct {
-				ID string `json:"id"`
-			} `json:"data"`
-		}
-		var models SiliconFlowModelResp
-		err = json.Unmarshal(body, &models)
-		if err != nil {
-			return nil, err
-		}
-		modelsList := make([]domain.ProviderModelListItem, 0, len(models.Data))
-		for _, model := range models.Data {
-			modelsList = append(modelsList, domain.ProviderModelListItem{
-				Model: model.ID,
-			})
-		}
-		return &domain.GetProviderModelListResp{
-			Models: modelsList,
-		}, nil
-	default:
-		return nil, fmt.Errorf("invalid provider: %s", req.Provider)
-	}
 }

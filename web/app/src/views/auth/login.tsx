@@ -4,10 +4,12 @@ import {
   postShareProV1AuthCas,
   postShareProV1AuthDingtalk,
   postShareProV1AuthFeishu,
+  postShareProV1AuthGithub,
   postShareProV1AuthLdap,
   postShareProV1AuthOauth,
   postShareProV1AuthWecom,
 } from '@/request/pro/ShareAuth';
+import { postShareV1AuthGithub } from '@/request/ShareAuth';
 import {
   getShareV1AuthGet,
   postShareV1AuthLoginSimple,
@@ -23,13 +25,17 @@ import {
   IconFeishu,
   IconLDAP,
   IconLock,
-  IconOAuth,
   IconPassword,
   IconQiyeweixin,
   IconUser,
 } from '@/components/icons';
+import { IconGitHub1 } from '@panda-wiki/icons';
 import { useStore } from '@/provider';
-import { ConstsSourceType, DomainAuthType } from '@/request/types';
+import {
+  ConstsSourceType,
+  ConstsAuthType,
+  ConstsLicenseEdition,
+} from '@/request/types';
 import {
   Box,
   Button,
@@ -38,19 +44,25 @@ import {
   Stack,
   TextField,
 } from '@mui/material';
-import { message } from 'ct-mui';
+import { message } from '@ctzhian/ui';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 export default function Login() {
+  const searchParams = useSearchParams();
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(false);
-  const [authType, setAuthType] = useState<DomainAuthType>();
+  const [authType, setAuthType] = useState<ConstsAuthType>();
+  const [licenseEdition, setLicenseEdition] = useState<ConstsLicenseEdition>();
   const [sourceType, setSourceType] = useState<ConstsSourceType>();
-  const router = useRouter();
   const { kbDetail, themeMode, mobile = false, setNodeList } = useStore();
+  const redirectUrl =
+    typeof window !== 'undefined'
+      ? window.location.origin +
+        decodeURIComponent(searchParams.get('redirect') || '')
+      : '';
 
   const handleLogin = async () => {
     if (!password.trim()) {
@@ -66,7 +78,7 @@ export default function Login() {
         getShareV1NodeList().then(res => {
           setNodeList?.((res as any) ?? []);
           message.success('认证成功');
-          router.push('/');
+          window.open(redirectUrl, '_self');
         });
       });
     } catch (error) {
@@ -79,7 +91,7 @@ export default function Login() {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       if (
-        authType === DomainAuthType.AuthTypeEnterprise &&
+        authType === ConstsAuthType.AuthTypeEnterprise &&
         sourceType === ConstsSourceType.SourceTypeLDAP
       ) {
         // For LDAP auth, check if both username and password are filled before submitting
@@ -95,7 +107,7 @@ export default function Login() {
   const handleDingTalkLogin = () => {
     clearCookie();
     postShareProV1AuthDingtalk({
-      redirect_url: window.location.origin,
+      redirect_url: redirectUrl,
     }).then(res => {
       window.location.href = res.url || '/';
     });
@@ -104,7 +116,7 @@ export default function Login() {
   const handleFeishuLogin = () => {
     clearCookie();
     postShareProV1AuthFeishu({
-      redirect_url: window.location.origin,
+      redirect_url: redirectUrl,
     }).then(res => {
       window.location.href = res.url || '/';
     });
@@ -113,7 +125,7 @@ export default function Login() {
   const handleQiyeweixinLogin = () => {
     clearCookie();
     postShareProV1AuthWecom({
-      redirect_url: window.location.origin,
+      redirect_url: redirectUrl,
     }).then(res => {
       window.location.href = res.url || '/';
     });
@@ -122,15 +134,32 @@ export default function Login() {
   const handleOAuthLogin = () => {
     clearCookie();
     postShareProV1AuthOauth({
-      redirect_url: window.location.origin,
+      redirect_url: redirectUrl,
     }).then(res => {
       window.location.href = res.url || '/';
     });
   };
 
+  const handleGitHubLogin = () => {
+    clearCookie();
+    if (licenseEdition === ConstsLicenseEdition.LicenseEditionFree) {
+      postShareV1AuthGithub({
+        redirect_url: redirectUrl,
+      }).then(res => {
+        window.location.href = res.url || '/';
+      });
+    } else {
+      postShareProV1AuthGithub({
+        redirect_url: redirectUrl,
+      }).then(res => {
+        window.location.href = res.url || '/';
+      });
+    }
+  };
+
   const handleCASLogin = () => {
     postShareProV1AuthCas({
-      redirect_url: window.location.origin,
+      redirect_url: redirectUrl,
     }).then(res => {
       window.location.href = res.url || '/';
     });
@@ -146,7 +175,7 @@ export default function Login() {
         getShareV1NodeList().then(res => {
           setNodeList?.((res as any) ?? []);
           message.success('认证成功');
-          router.push('/');
+          window.open(redirectUrl, '_self');
         });
       });
     } catch (error) {
@@ -160,8 +189,9 @@ export default function Login() {
     getShareV1AuthGet({}).then(res => {
       setAuthType(res?.auth_type);
       setSourceType(res?.source_type);
-      if (res?.auth_type === DomainAuthType.AuthTypeNull) {
-        router.push('/');
+      setLicenseEdition(res?.license_edition);
+      if (res?.auth_type === ConstsAuthType.AuthTypeNull) {
+        window.open(redirectUrl, '_self');
       }
     });
   }, []);
@@ -210,7 +240,7 @@ export default function Login() {
                 {kbDetail?.settings?.title}
               </Box>
             </Stack>
-            {authType === DomainAuthType.AuthTypeSimple && (
+            {authType === ConstsAuthType.AuthTypeSimple && (
               <>
                 <TextField
                   fullWidth
@@ -264,7 +294,7 @@ export default function Login() {
               </>
             )}
 
-            {authType === DomainAuthType.AuthTypeEnterprise && (
+            {authType === ConstsAuthType.AuthTypeEnterprise && (
               <>
                 {sourceType === ConstsSourceType.SourceTypeDingTalk && (
                   <IconButton onClick={handleDingTalkLogin}>
@@ -286,6 +316,17 @@ export default function Login() {
                     fullWidth
                     variant='contained'
                     onClick={handleOAuthLogin}
+                    sx={{ height: '50px', fontSize: 16 }}
+                  >
+                    登录
+                  </Button>
+                )}
+                {sourceType === ConstsSourceType.SourceTypeGitHub && (
+                  <Button
+                    fullWidth
+                    variant='contained'
+                    onClick={handleGitHubLogin}
+                    startIcon={<IconGitHub1 />}
                     sx={{ height: '50px', fontSize: 16 }}
                   >
                     登录
@@ -427,14 +468,7 @@ export default function Login() {
           </Stack>
         </Box>
       </Box>
-      <Box
-        sx={{
-          maxWidth: '1200px',
-          margin: '0 auto',
-        }}
-      >
-        <FooterProvider showBrand={false} />
-      </Box>
+      <FooterProvider showBrand={false} />
     </>
   );
 }

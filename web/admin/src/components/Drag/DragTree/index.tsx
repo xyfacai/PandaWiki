@@ -1,9 +1,11 @@
-import { ITreeItem, moveNode } from '@/api';
+import { ITreeItem } from '@/api';
+import { postApiV1NodeMove } from '@/request/Node';
 import { AppContext, DragTreeProps, getSiblingItemIds } from '@/utils/drag';
 import { DndContext } from '@dnd-kit/core';
 import { SortableTree, TreeItems } from 'dnd-kit-sortable-tree';
 import { ItemChangedReason } from 'dnd-kit-sortable-tree/dist/types';
 import { useEffect, useState } from 'react';
+import { useAppSelector } from '@/store';
 import TreeItem from './TreeItem';
 
 const DragTree = ({
@@ -18,7 +20,7 @@ const DragTree = ({
   relativeSelect = true,
 }: DragTreeProps) => {
   const [items, setItems] = useState<TreeItems<ITreeItem>>(data);
-
+  const { kb_id } = useAppSelector(state => state.config);
   useEffect(() => {
     setItems(data);
   }, [data]);
@@ -48,13 +50,14 @@ const DragTree = ({
           ) => {
             if (reason.type === 'dropped') {
               const { draggedItem } = reason;
-              const { parentId = null, id } = draggedItem;
+              const { parentId, id } = draggedItem;
               const { prevItemId, nextItemId } = getSiblingItemIds(items, id);
-              moveNode({
+              postApiV1NodeMove({
                 id,
                 parent_id: parentId,
-                next_id: nextItemId,
-                prev_id: prevItemId,
+                next_id: nextItemId as string,
+                prev_id: prevItemId as string,
+                kb_id: kb_id,
               }).then(() => {
                 refresh?.();
               });

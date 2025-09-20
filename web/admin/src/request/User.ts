@@ -12,8 +12,10 @@
 
 import httpRequest, { ContentType, RequestParams } from "./httpClient";
 import {
+  DomainPWResponse,
   DomainResponse,
   V1CreateUserReq,
+  V1CreateUserResp,
   V1DeleteUserReq,
   V1LoginReq,
   V1LoginResp,
@@ -47,14 +49,21 @@ export const getApiV1User = (params: RequestParams = {}) =>
  * @name PostApiV1UserCreate
  * @summary CreateUser
  * @request POST:/api/v1/user/create
- * @response `200` `DomainResponse` OK
+ * @response `200` `(DomainResponse & {
+    data?: V1CreateUserResp,
+
+})` OK
  */
 
 export const postApiV1UserCreate = (
   body: V1CreateUserReq,
   params: RequestParams = {},
 ) =>
-  httpRequest<DomainResponse>({
+  httpRequest<
+    DomainResponse & {
+      data?: V1CreateUserResp;
+    }
+  >({
     path: `/api/v1/user/create`,
     method: "POST",
     body: body,
@@ -93,7 +102,7 @@ export const deleteApiV1UserDelete = (
  * @name GetApiV1UserList
  * @summary ListUsers
  * @request GET:/api/v1/user/list
- * @response `200` `(DomainResponse & {
+ * @response `200` `(DomainPWResponse & {
     data?: V1UserListResp,
 
 })` OK
@@ -101,7 +110,7 @@ export const deleteApiV1UserDelete = (
 
 export const getApiV1UserList = (params: RequestParams = {}) =>
   httpRequest<
-    DomainResponse & {
+    DomainPWResponse & {
       data?: V1UserListResp;
     }
   >({

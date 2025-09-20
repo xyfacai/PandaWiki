@@ -1,4 +1,4 @@
-import { message } from 'ct-mui';
+import { message } from '@ctzhian/ui';
 import { ResolvingMetadata } from 'next';
 import React from 'react';
 import { ITreeItem } from '@/assets/type';
@@ -174,6 +174,7 @@ export const filterTreeBySearch = (
         children:
           filteredChildren.length > 0 ? filteredChildren : node.children,
         defaultExpand: true, // 搜索时展开所有匹配的节点
+        expanded: true,
       };
     }
 
@@ -241,3 +242,44 @@ export function base64ToFile(base64Data: string, filename: string) {
   // 创建并返回File对象
   return new File([u8arr], filename, { type: mime });
 }
+
+export const isValidUrl = (url: string) => {
+  const regex = /^(https?):\/\/[^\s/$.?#].[^\s]*$/i;
+  return regex.test(url);
+};
+
+export const getRedirectUrl = () => {
+  const searchParams = new URLSearchParams(location.search);
+  const redirect = searchParams.get('redirect') || '/';
+  let redirectUrl: URL | null = null;
+  try {
+    redirectUrl = redirect ? new URL(decodeURIComponent(redirect)) : null;
+  } catch (e) {
+    redirectUrl = redirect
+      ? new URL(location.origin + decodeURIComponent(redirect))
+      : null;
+  }
+
+  redirectUrl = isValidUrl(redirectUrl?.href || '')
+    ? redirectUrl
+    : new URL('/', location.origin);
+  return redirectUrl as URL;
+};
+
+export const MAC_SYMBOLS = {
+  ctrl: '⌘',
+  alt: '⌥',
+  shift: '⇧',
+};
+
+export const isMac = () =>
+  typeof navigator !== 'undefined' &&
+  navigator.platform.toLowerCase().includes('mac');
+
+export const getShortcutKeyText = (shortcutKey: string[]) => {
+  return shortcutKey
+    ?.map(it =>
+      isMac() ? MAC_SYMBOLS[it as keyof typeof MAC_SYMBOLS] || it : it,
+    )
+    .join('+');
+};

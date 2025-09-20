@@ -1,3 +1,9 @@
+import {
+  ConstsCopySetting,
+  ConstsWatermarkSetting,
+  DomainDisclaimerSettings,
+} from '@/request/types';
+
 export interface NavBtn {
   id: string;
   url: string;
@@ -45,6 +51,7 @@ export interface CatalogSetting {
 
 export interface ThemeAndStyleSetting {
   bg_image: string;
+  doc_width: string;
 }
 
 export interface KBDetail {
@@ -67,8 +74,28 @@ export interface KBDetail {
     footer_settings?: FooterSetting | null;
     catalog_settings?: CatalogSetting | null;
     theme_and_style?: ThemeAndStyleSetting | null;
+    watermark_content?: string;
+    watermark_setting?: ConstsWatermarkSetting;
+    copy_setting?: ConstsCopySetting;
+    disclaimer_settings?: DomainDisclaimerSettings;
+    web_app_custom_style: {
+      allow_theme_switching?: boolean;
+      header_search_placeholder?: string;
+      show_brand_info?: boolean;
+      social_media_accounts?: DomainSocialMediaAccount[];
+      footer_show_intro?: boolean;
+    };
+    contribute_settings?: {
+      is_enable: boolean;
+    };
   };
-  recommend_nodes: RecommendNode[];
+}
+export interface DomainSocialMediaAccount {
+  channel?: string;
+  icon?: string;
+  link?: string;
+  text?: string;
+  phone?: string;
 }
 
 export type WidgetInfo = {
@@ -108,6 +135,7 @@ export interface NodeDetail {
   updated_at: string;
   type: 1 | 2;
   meta: {
+    doc_width: string;
     summary: string;
     emoji?: string;
   };
@@ -124,7 +152,6 @@ export interface NodeListItem {
   created_at: string;
   updated_at: string;
   status: 1 | 2; // 1 草稿 2 发布
-  visibility: 1 | 2; // 1 私有 2 公开
 }
 
 export interface ChunkResultItem {
@@ -140,6 +167,7 @@ export interface ITreeItem {
   order?: number;
   emoji?: string;
   defaultExpand?: boolean;
+  expanded?: boolean;
   parentId?: string | null;
   summary?: string;
   children?: ITreeItem[];
@@ -148,7 +176,6 @@ export interface ITreeItem {
   canHaveChildren?: boolean;
   updated_at?: string;
   status?: 1 | 2;
-  visibility?: 1 | 2;
 }
 
 export interface ConversationItem {

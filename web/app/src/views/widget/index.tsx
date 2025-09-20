@@ -5,13 +5,14 @@ import { IconFile, IconFolder, IconLogo } from '@/components/icons';
 import { useStore } from '@/provider';
 import SSEClient from '@/utils/fetch';
 import { Box, Stack, useMediaQuery } from '@mui/material';
-import { Ellipsis, message } from 'ct-mui';
+import { Ellipsis, message } from '@ctzhian/ui';
 import dayjs from 'dayjs';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnswerStatus } from '../chat/constant';
 import ChatInput from './ChatInput';
 import ChatWindow from './ChatWindow';
+import WaterMarkProvider from '@/components/watermark/WaterMarkProvider';
 
 const Widget = () => {
   const isMobile = useMediaQuery(theme => theme.breakpoints.down('sm'));
@@ -184,7 +185,7 @@ const Widget = () => {
   }, []);
 
   return (
-    <>
+    <WaterMarkProvider>
       <Stack
         direction={'row'}
         alignItems={'flex-start'}
@@ -204,7 +205,7 @@ const Widget = () => {
             sx={{ lineHeight: '28px', fontSize: 20 }}
           >
             {widget?.settings?.widget_bot_settings?.btn_logo ||
-              widget?.settings?.icon ? (
+            widget?.settings?.icon ? (
               <img
                 src={
                   widget?.settings?.widget_bot_settings?.btn_logo ||
@@ -283,7 +284,7 @@ const Widget = () => {
                     cursor: 'pointer',
                     bgcolor:
                       themeMode === 'dark'
-                        ? 'background.paper2'
+                        ? 'background.paper3'
                         : 'background.default',
                     '&:hover': {
                       borderColor: 'primary.main',
@@ -330,6 +331,7 @@ const Widget = () => {
                             borderBottom: '1px solid',
                             borderColor: 'divider',
                             cursor: 'pointer',
+                            color: 'text.primary',
                             '&:hover': {
                               color: 'primary.main',
                             },
@@ -375,13 +377,14 @@ const Widget = () => {
           height: 24,
           fontSize: 12,
           bgcolor: themeMode === 'light' ? 'light.main' : 'dark.light',
+          color: 'text.primary',
           a: {
             color: 'primary.main',
           },
         }}
       >
       </Stack>
-    </>
+    </WaterMarkProvider>
   );
 };
 
