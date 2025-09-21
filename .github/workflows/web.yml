@@ -147,6 +147,6 @@ jobs:
           file: ./web/${{ matrix.project }}/Dockerfile
           push: true
           platforms: linux/amd64, linux/arm64
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/panda-wiki-${{ matrix.project == 'admin' && 'nginx' || 'app' }}:v${{ needs.build.outputs.version }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/panda-wiki-${{ matrix.project == 'admin' && 'nginx' || 'app' }}:v${{ needs.version.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
