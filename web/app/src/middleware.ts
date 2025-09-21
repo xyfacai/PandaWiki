@@ -14,7 +14,43 @@ const proxyShare = async (request: NextRequest) => {
     targetOrigin,
   );
   // 构造 fetch 选项
-  const fetchHeaders = new Headers(request.headers);
+  const fetchHeaders = new Headers();
+  
+  // 只复制必要的请求头，避免复制可能导致问题的头字段
+  const allowedHeaders = [
+    'accept',
+    'accept-language',
+    'accept-encoding',
+    'user-agent',
+    'content-type',
+    'authorization',
+    'x-forwarded-for',
+    'x-real-ip',
+    'x-forwarded-proto',
+    'x-forwarded-host',
+    'x-forwarded-port',
+    'x-requested-with',
+    'referer',
+    'origin',
+    'cache-control',
+    'pragma',
+    'if-modified-since',
+    'if-none-match',
+    'if-match',
+    'if-unmodified-since',
+    'range',
+    'if-range',
+  ];
+  
+  // 复制允许的请求头
+  for (const header of allowedHeaders) {
+    const value = request.headers.get(header);
+    if (value) {
+      fetchHeaders.set(header, value);
+    }
+  }
+  
+  // 设置必要的自定义头
   fetchHeaders.set('x-kb-id', kb_id);
 
   const fetchOptions: RequestInit = {

@@ -294,30 +294,6 @@ const Footer = ({
                 color: 'rgba(255, 255, 255, 0.30)',
               }}
             >
-              本网站由
-              <Link
-                href={'https://pandawiki.docs.baizhi.cloud/'}
-                target='_blank'
-                prefetch={false}
-              >
-                <Stack
-                  direction={'row'}
-                  alignItems={'center'}
-                  gap={0.5}
-                  sx={{
-                    cursor: 'pointer',
-                  }}
-                >
-                  <Image
-                    src={logo.src}
-                    alt='PandaWiki'
-                    width={16}
-                    height={16}
-                  />
-                  <Box sx={{ fontWeight: 'bold' }}>PandaWiki</Box>
-                </Stack>
-              </Link>
-              提供技术支持
             </Stack>
           )}
         </Box>
