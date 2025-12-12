@@ -1,17 +1,17 @@
-import { Box, Button, Stack, Typography, Divider } from '@mui/material';
-import dayjs from 'dayjs';
-import { Modal } from '@ctzhian/ui';
+import { getApiProV1ContributeDetail } from '@/request/pro/Contribute';
 import type { GithubComChaitinPandaWikiProApiContributeV1ContributeItem } from '@/request/pro/types';
 import {
   ConstsContributeStatus,
-  GithubComChaitinPandaWikiProApiContributeV1ContributeDetailResp,
   ConstsContributeType,
+  GithubComChaitinPandaWikiProApiContributeV1ContributeDetailResp,
 } from '@/request/pro/types';
-import { getApiProV1ContributeDetail } from '@/request/pro/Contribute';
 import { useAppSelector } from '@/store';
-import { useEffect, useState } from 'react';
-import { EditorDiff, Editor, useTiptap } from '@ctzhian/tiptap';
+import { Editor, EditorDiff, useTiptap } from '@ctzhian/tiptap';
+import { Modal } from '@ctzhian/ui';
+import { Box, Button, Divider, Stack, Typography } from '@mui/material';
 import { IconWenjian } from '@panda-wiki/icons';
+import dayjs from 'dayjs';
+import { useEffect, useState } from 'react';
 
 type ContributePreviewModalProps = {
   open: boolean;
@@ -36,6 +36,7 @@ export default function ContributePreviewModal(
     content: '',
     editable: false,
     immediatelyRender: true,
+    baseUrl: window.__BASENAME__ || '',
   });
 
   useEffect(() => {
@@ -49,11 +50,11 @@ export default function ContributePreviewModal(
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     if (value === 'content') {
-      editorRef.editor.commands.setContent(data?.content || '');
+      editorRef.setContent(data?.content || '');
     } else if (value === 'old_content') {
-      editorRef.editor.commands.setContent(data?.original_node?.content || '');
+      editorRef.setContent(data?.original_node?.content || '');
     } else if (value === 'diff') {
-      editorRef.editor.commands.setContent('');
+      editorRef.setContent('');
     }
   };
 
@@ -83,7 +84,7 @@ export default function ContributePreviewModal(
               ? '新增'
               : '修改'}
           </Box>
-          <Box sx={{ fontSize: 14, color: 'text.auxiliary', fontWeight: 400 }}>
+          <Box sx={{ fontSize: 14, color: 'text.tertiary', fontWeight: 400 }}>
             {dayjs(row?.created_at).fromNow()}
           </Box>
         </Stack>
@@ -166,6 +167,7 @@ export default function ContributePreviewModal(
               <EditorDiff
                 oldHtml={data?.original_node?.content || ''}
                 newHtml={data?.content || ''}
+                baseUrl={window.__BASENAME__ || ''}
               />
             )}
         </Stack>

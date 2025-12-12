@@ -34,17 +34,19 @@ func NewModelHandler(echo *echo.Echo, baseHandler *handler.BaseHandler, logger *
 		llmUsecase:  llmUsecase,
 		modelkit:    modelkit,
 	}
-	group := echo.Group("/api/v1/model", handler.auth.Authorize)
+	group := echo.Group("/api/v1/model", handler.auth.Authorize, handler.auth.ValidateUserRole(consts.UserRoleAdmin))
 	group.GET("/list", handler.GetModelList)
 	group.POST("", handler.CreateModel)
 	group.POST("/check", handler.CheckModel)
 	group.POST("/provider/supported", handler.GetProviderSupportedModelList)
 	group.PUT("", handler.UpdateModel)
+	group.POST("/switch-mode", handler.SwitchMode)
+	group.GET("/mode-setting", handler.GetModelModeSetting)
 
 	return handler
 }
 
-// get model list
+// GetModelList
 //
 //	@Summary		get model list
 //	@Description	get model list
@@ -64,7 +66,7 @@ func (h *ModelHandler) GetModelList(c echo.Context) error {
 	return h.NewResponseWithData(c, models)
 }
 
-// create model
+// CreateModel
 //
 //	@Summary		create model
 //	@Description	create model
@@ -83,9 +85,6 @@ func (h *ModelHandler) CreateModel(c echo.Context) error {
 		return h.NewResponseWithError(c, "invalid request", err)
 	}
 
-	if consts.GetLicenseEdition(c) == consts.LicenseEditionContributor && req.Provider != domain.ModelProviderBrandBaiZhiCloud {
-		return h.NewResponseWithError(c, "联创版只能使用百智云模型哦~", nil)
-	}
 	ctx := c.Request().Context()
 
 	param := domain.ModelParam{}
@@ -110,7 +109,7 @@ func (h *ModelHandler) CreateModel(c echo.Context) error {
 	return h.NewResponseWithData(c, model)
 }
 
-// update model
+// UpdateModel
 //
 //	@Description	update model
 //	@Tags			model
@@ -128,9 +127,6 @@ func (h *ModelHandler) UpdateModel(c echo.Context) error {
 		return h.NewResponseWithError(c, "invalid request", err)
 	}
 
-	if consts.GetLicenseEdition(c) == consts.LicenseEditionContributor && req.Provider != domain.ModelProviderBrandBaiZhiCloud {
-		return h.NewResponseWithError(c, "联创版只能使用百智云模型哦~", nil)
-	}
 	ctx := c.Request().Context()
 	if err := h.usecase.Update(ctx, &req); err != nil {
 		return h.NewResponseWithError(c, "update model failed", err)
@@ -138,7 +134,7 @@ func (h *ModelHandler) UpdateModel(c echo.Context) error {
 	return h.NewResponseWithData(c, nil)
 }
 
-// check model
+// CheckModel
 //
 //	@Summary		check model
 //	@Description	check model
@@ -159,7 +155,7 @@ func (h *ModelHandler) CheckModel(c echo.Context) error {
 	ctx := c.Request().Context()
 	modelType := req.Type
 	switch req.Type {
-	case domain.ModelTypeAnalysis: // for rag analysis
+	case domain.ModelTypeAnalysis, domain.ModelTypeAnalysisVL: // for rag analysis
 		modelType = domain.ModelTypeChat
 	default:
 	}
@@ -171,6 +167,7 @@ func (h *ModelHandler) CheckModel(c echo.Context) error {
 		APIHeader:  req.APIHeader,
 		APIVersion: req.APIVersion,
 		Type:       string(modelType),
+		Param:      (*modelkitDomain.ModelParam)(req.Parameters),
 	})
 	if err != nil {
 		return h.NewResponseWithError(c, "get model failed", err)
@@ -209,4 +206,59 @@ func (h *ModelHandler) GetProviderSupportedModelList(c echo.Context) error {
 		return h.NewResponseWithError(c, "get user model list failed", err)
 	}
 	return h.NewResponseWithData(c, models)
+}
+
+// SwitchMode
+//
+//	@Summary		switch mode
+//	@Description	switch model mode between manual and auto
+//	@Tags			model
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		domain.SwitchModeReq	true	"switch mode request"
+//	@Success		200		{object}	domain.Response{data=domain.SwitchModeResp}
+//	@Router			/api/v1/model/switch-mode [post]
+func (h *ModelHandler) SwitchMode(c echo.Context) error {
+	var req domain.SwitchModeReq
+	if err := c.Bind(&req); err != nil {
+		return h.NewResponseWithError(c, "bind request failed", err)
+	}
+	if err := c.Validate(&req); err != nil {
+		return h.NewResponseWithError(c, "validate request failed", err)
+	}
+	ctx := c.Request().Context()
+
+	if err := h.usecase.SwitchMode(ctx, &req); err != nil {
+		return h.NewResponseWithError(c, err.Error(), err)
+	}
+
+	resp := &domain.SwitchModeResp{
+		Message: "模式切换成功",
+	}
+	return h.NewResponseWithData(c, resp)
+}
+
+// GetModelModeSetting
+//
+//	@Summary		get model mode setting
+//	@Description	get current model mode setting including mode, API key and chat model
+//	@Tags			model
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	domain.Response{data=domain.ModelModeSetting}
+//	@Router			/api/v1/model/mode-setting [get]
+func (h *ModelHandler) GetModelModeSetting(c echo.Context) error {
+	ctx := c.Request().Context()
+	setting, err := h.usecase.GetModelModeSetting(ctx)
+	if err != nil {
+		// 如果获取失败，返回默认值（手动模式）
+		h.logger.Warn("failed to get model mode setting, return default", log.Error(err))
+		defaultSetting := domain.ModelModeSetting{
+			Mode:           consts.ModelSettingModeManual,
+			AutoModeAPIKey: "",
+			ChatModel:      "",
+		}
+		return h.NewResponseWithData(c, defaultSetting)
+	}
+	return h.NewResponseWithData(c, setting)
 }

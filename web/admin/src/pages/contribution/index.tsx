@@ -1,26 +1,29 @@
-import { useState, useEffect } from 'react';
-import { styled } from '@mui/material/styles';
 import Logo from '@/assets/images/logo.png';
-import { Box, Chip, Stack, TextField } from '@mui/material';
 import Card from '@/components/Card';
 import { tableSx } from '@/constant/styles';
-import dayjs from 'dayjs';
-import { Table, Ellipsis, message, Modal } from '@ctzhian/ui';
+import { Ellipsis, message, Modal, Table } from '@ctzhian/ui';
 import type { ColumnType } from '@ctzhian/ui/dist/Table';
+import { Box, Chip, Stack, TextField } from '@mui/material';
+import { styled } from '@mui/material/styles';
+import dayjs from 'dayjs';
+import { useEffect, useState } from 'react';
 import DocModal from './DocModal';
+import VersionMask from '@/components/VersionMask';
+import { PROFESSION_VERSION_PERMISSION } from '@/constant/version';
 
+import { useURLSearchParams } from '@/hooks';
 import {
   getApiProV1ContributeList,
   postApiProV1ContributeAudit,
 } from '@/request/pro/Contribute';
 import {
-  GithubComChaitinPandaWikiProApiContributeV1ContributeItem,
   ConstsContributeStatus,
   ConstsContributeType,
+  GithubComChaitinPandaWikiProApiContributeV1ContributeItem,
 } from '@/request/pro/types';
-import { useURLSearchParams } from '@/hooks';
 import { useAppSelector } from '@/store';
 import ContributePreviewModal from './ContributePreviewModal';
+import MarkdownPreviewModal from './MarkdownPreviewModal';
 
 const StyledSearchRow = styled(Stack)(({ theme }) => ({
   padding: theme.spacing(2),
@@ -45,7 +48,7 @@ const statusColorMap = {
 } as const;
 
 export default function ContributionPage() {
-  const { kb_id = '', kbDetail } = useAppSelector(state => state.config);
+  const { kb_id = '', license } = useAppSelector(state => state.config);
   const [searchParams, setSearchParams] = useURLSearchParams();
   const page = Number(searchParams.get('page') || '1');
   const pageSize = Number(searchParams.get('page_size') || '20');
@@ -200,6 +203,22 @@ export default function ContributionPage() {
         },
       },
       {
+        dataIndex: 'remote_ip',
+        title: '来源 IP',
+        width: 200,
+        render: (text: string, record) => {
+          const { city = '', country = '', province = '' } = record.ip_address!;
+          return (
+            <>
+              <Box>{text}</Box>
+              <Box sx={{ color: 'text.tertiary', fontSize: 12 }}>
+                {country === '中国' ? `${province}-${city}` : `${country}`}
+              </Box>
+            </>
+          );
+        },
+      },
+      {
         dataIndex: 'created_at',
         title: '时间',
         width: 180,
@@ -266,101 +285,114 @@ export default function ContributionPage() {
   };
 
   useEffect(() => {
-    if (kb_id) getData();
+    if (kb_id && PROFESSION_VERSION_PERMISSION.includes(license.edition!))
+      getData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, pageSize, nodeNameParam, authNameParam, kb_id]);
+  }, [page, pageSize, nodeNameParam, authNameParam, kb_id, license.edition]);
 
   return (
     <Card>
-      <Stack
-        direction='row'
-        alignItems={'center'}
-        justifyContent={'space-between'}
-        sx={{ p: 2 }}
-      >
-        <StyledSearchRow direction='row' sx={{ p: 0, flex: 1 }}>
-          <TextField
-            fullWidth
-            size='small'
-            label='文档'
-            value={searchDoc}
-            onKeyUp={e => {
-              if (e.key === 'Enter') {
-                setSearchParams({ node_name: searchDoc || '', page: '1' });
-              }
-            }}
-            onBlur={e => {
-              setSearchParams({ node_name: e.target.value, page: '1' });
-            }}
-            onChange={e => setSearchDoc(e.target.value)}
-            sx={{ width: 200 }}
-          />
-          <TextField
-            fullWidth
-            size='small'
-            label='用户'
-            value={searchUser}
-            onKeyUp={e => {
-              if (e.key === 'Enter') {
-                setSearchParams({ auth_name: searchUser || '', page: '1' });
-              }
-            }}
-            onBlur={e => {
-              setSearchParams({ auth_name: e.target.value, page: '1' });
-            }}
-            onChange={e => setSearchUser(e.target.value)}
-            sx={{ width: 200 }}
-          />
-        </StyledSearchRow>
-      </Stack>
-      <Table
-        columns={columns}
-        dataSource={data}
-        rowKey='id'
-        height='calc(100vh - 148px)'
-        size='small'
-        sx={{
-          overflow: 'hidden',
-          ...tableSx,
-          '.MuiTableContainer-root': {
-            height: 'calc(100vh - 148px - 70px)',
-          },
-        }}
-        pagination={{
-          total,
-          page,
-          pageSize,
-          onChange: (page, pageSize) => {
-            setSearchParams({
-              page: String(page),
-              page_size: String(pageSize),
-            });
-          },
-        }}
-        PaginationProps={{
-          sx: {
-            borderTop: '1px solid',
-            borderColor: 'divider',
-            p: 2,
-            '.MuiSelect-root': {
-              width: 100,
+      <VersionMask permission={PROFESSION_VERSION_PERMISSION}>
+        <Stack
+          direction='row'
+          alignItems={'center'}
+          justifyContent={'space-between'}
+          sx={{ p: 2 }}
+        >
+          <StyledSearchRow direction='row' sx={{ p: 0, flex: 1 }}>
+            <TextField
+              fullWidth
+              size='small'
+              label='文档'
+              value={searchDoc}
+              onKeyUp={e => {
+                if (e.key === 'Enter') {
+                  setSearchParams({ node_name: searchDoc || '', page: '1' });
+                }
+              }}
+              onBlur={e => {
+                setSearchParams({ node_name: e.target.value, page: '1' });
+              }}
+              onChange={e => setSearchDoc(e.target.value)}
+              sx={{ width: 200 }}
+            />
+            <TextField
+              fullWidth
+              size='small'
+              label='用户'
+              value={searchUser}
+              onKeyUp={e => {
+                if (e.key === 'Enter') {
+                  setSearchParams({ auth_name: searchUser || '', page: '1' });
+                }
+              }}
+              onBlur={e => {
+                setSearchParams({ auth_name: e.target.value, page: '1' });
+              }}
+              onChange={e => setSearchUser(e.target.value)}
+              sx={{ width: 200 }}
+            />
+          </StyledSearchRow>
+        </Stack>
+        <Table
+          columns={columns}
+          dataSource={data}
+          rowKey='id'
+          height='calc(100vh - 148px)'
+          size='small'
+          sx={{
+            overflow: 'hidden',
+            ...tableSx,
+            '.MuiTableContainer-root': {
+              height: 'calc(100vh - 148px - 70px)',
             },
-          },
-        }}
-      />
+          }}
+          pagination={{
+            total,
+            page,
+            pageSize,
+            onChange: (page, pageSize) => {
+              setSearchParams({
+                page: String(page),
+                page_size: String(pageSize),
+              });
+            },
+          }}
+          PaginationProps={{
+            sx: {
+              borderTop: '1px solid',
+              borderColor: 'divider',
+              p: 2,
+              '.MuiSelect-root': {
+                width: 100,
+              },
+            },
+          }}
+        />
 
-      <ContributePreviewModal
-        open={open}
-        row={previewRow}
-        onClose={closeDialog}
-        onAccept={handleAccept}
-        onReject={handleReject}
-      />
-      <DocModal
-        open={docModalOpen}
-        onClose={() => setDocModalOpen(false)}
-        onOk={handleDocModalOk}
-      />
+        {previewRow?.meta?.content_type === 'md' ? (
+          <MarkdownPreviewModal
+            open={open}
+            row={previewRow}
+            onClose={closeDialog}
+            onAccept={handleAccept}
+            onReject={handleReject}
+          />
+        ) : (
+          <ContributePreviewModal
+            open={open}
+            row={previewRow}
+            onClose={closeDialog}
+            onAccept={handleAccept}
+            onReject={handleReject}
+          />
+        )}
+        <DocModal
+          open={docModalOpen}
+          onClose={() => setDocModalOpen(false)}
+          onOk={handleDocModalOk}
+        />
+      </VersionMask>
     </Card>
   );
 }

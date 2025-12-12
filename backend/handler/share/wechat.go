@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 	"github.com/sbzhu/weworkapi_golang/wxbizmsgcrypt"
@@ -25,6 +26,7 @@ type ShareWechatHandler struct {
 	appCase          *usecase.AppUsecase
 	conversationCase *usecase.ConversationUsecase
 	wechatUsecase    *usecase.WechatUsecase
+	wecomUsecase     *usecase.WecomUsecase
 	wechatAppUsecase *usecase.WechatAppUsecase
 }
 
@@ -35,6 +37,7 @@ func NewShareWechatHandler(
 	appCase *usecase.AppUsecase,
 	conversationCase *usecase.ConversationUsecase,
 	wechatUsecase *usecase.WechatUsecase,
+	wecomUsecase *usecase.WecomUsecase,
 	wechatAppUsecase *usecase.WechatAppUsecase,
 ) *ShareWechatHandler {
 	h := &ShareWechatHandler{
@@ -43,6 +46,7 @@ func NewShareWechatHandler(
 		appCase:          appCase,
 		conversationCase: conversationCase,
 		wechatUsecase:    wechatUsecase,
+		wecomUsecase:     wecomUsecase,
 		wechatAppUsecase: wechatAppUsecase,
 	}
 
@@ -66,6 +70,10 @@ func NewShareWechatHandler(
 	//企业微信
 	share.GET("/wechat/app", h.VerifyUrlWechatApp)
 	share.POST("/wechat/app", h.WechatHandlerApp)
+
+	// 企业微信智能机器人
+	share.GET("/wecom/ai_bot", h.WecomAIBotVerify)
+	share.POST("/wecom/ai_bot", h.WecomAIBotHandle)
 
 	return h
 }
@@ -104,6 +112,12 @@ func (h *ShareWechatHandler) GetWechatAnswer(c echo.Context) error {
 			return err
 		}
 		//2.answer
+		if err := h.writeSSEEvent(c, domain.SSEEvent{Type: "feedback_score", Content: strconv.Itoa(int(conversation.Messages[1].Info.Score))}); err != nil {
+			return err
+		}
+		if err := h.writeSSEEvent(c, domain.SSEEvent{Type: "message_id", Content: conversation.Messages[1].ID}); err != nil {
+			return err
+		}
 		if err := h.writeSSEEvent(c, domain.SSEEvent{Type: "answer", Content: conversation.Messages[1].Content}); err != nil {
 			return err
 		}
@@ -324,6 +338,7 @@ func (h *ShareWechatHandler) VerifyUrlWechatApp(c echo.Context) error {
 	return c.String(http.StatusOK, string(req))
 }
 
+// WechatHandlerApp /share/v1/app/wechat/app
 func (h *ShareWechatHandler) WechatHandlerApp(c echo.Context) error {
 	signature := c.QueryParam("msg_signature")
 	timestamp := c.QueryParam("timestamp")
@@ -376,18 +391,99 @@ func (h *ShareWechatHandler) WechatHandlerApp(c echo.Context) error {
 		return c.String(http.StatusOK, "")
 	}
 
-	immediateResponse, err := wechatConfig.SendResponse(*msg, "正在思考您的问题,请稍候...")
-	if err != nil {
-		return h.NewResponseWithError(c, "Failed to send immediate response", err)
+	var immediateResponse []byte
+	if domain.GetBaseEditionLimitation(ctx).AllowAdvancedBot && appInfo.Settings.WeChatAppAdvancedSetting.TextResponseEnable {
+		immediateResponse, err = wechatConfig.SendResponse(*msg, "正在思考您的问题,请稍候...")
+		if err != nil {
+			return h.NewResponseWithError(c, "Failed to send immediate response", err)
+		}
 	}
 
-	go func(msg *wechat.ReceivedMessage, wechatConfig *wechat.WechatConfig, kbId string) {
-		ctx := context.Background()
-		err := h.wechatAppUsecase.Wechat(ctx, msg, wechatConfig, kbId)
+	go func(ctx context.Context, msg *wechat.ReceivedMessage, wechatConfig *wechat.WechatConfig, kbId string, appInfo *domain.AppDetailResp) {
+		err := h.wechatAppUsecase.Wechat(ctx, msg, wechatConfig, kbId, &appInfo.Settings.WeChatAppAdvancedSetting)
 		if err != nil {
 			h.logger.Error("wechat async failed")
 		}
-	}(msg, wechatConfig, kbID)
+	}(ctx, msg, wechatConfig, kbID, appInfo)
 
-	return c.XMLBlob(http.StatusOK, []byte(immediateResponse))
+	return c.XMLBlob(http.StatusOK, immediateResponse)
+}
+
+func (h *ShareWechatHandler) WecomAIBotVerify(c echo.Context) error {
+	signature := c.QueryParam("msg_signature")
+	timestamp := c.QueryParam("timestamp")
+	nonce := c.QueryParam("nonce")
+	echoStr := c.QueryParam("echostr")
+
+	kbID := c.Request().Header.Get("X-KB-ID")
+
+	if kbID == "" {
+		return h.NewResponseWithError(c, "kb_id is required", nil)
+	}
+
+	if signature == "" || timestamp == "" || nonce == "" || echoStr == "" {
+		return h.NewResponseWithError(
+			c, "verify wecom ai params failed", nil,
+		)
+	}
+
+	ctx := c.Request().Context()
+
+	appInfo, err := h.appCase.GetAppDetailByKBIDAndAppType(ctx, kbID, domain.AppTypeWecomAIBot)
+
+	if err != nil {
+		h.logger.Error("find app detail failed", log.Error(err))
+		return err
+	}
+	if !appInfo.Settings.WecomAIBotSettings.IsEnabled {
+		h.logger.Error("wecom ai bot is not enabled", log.Error(err))
+		return errors.New("wecom ai bot is not enabled")
+	}
+
+	resp, err := h.wecomUsecase.VerifyUrlService(ctx, signature, timestamp, nonce, echoStr, appInfo)
+	if err != nil {
+		h.logger.Error("wecom ai bot verify failed", log.Error(err))
+		return err
+	}
+
+	return c.String(http.StatusOK, resp)
+}
+
+func (h *ShareWechatHandler) WecomAIBotHandle(c echo.Context) error {
+
+	signature := c.QueryParam("msg_signature")
+	timestamp := c.QueryParam("timestamp")
+	nonce := c.QueryParam("nonce")
+
+	kbID := c.Request().Header.Get("X-KB-ID")
+	if kbID == "" {
+		return h.NewResponseWithError(c, "kb_id is required", nil)
+	}
+
+	body, err := io.ReadAll(c.Request().Body)
+	if err != nil {
+		h.logger.Error("get request failed", log.Error(err))
+		return h.NewResponseWithError(c, "Internal Server Error", err)
+	}
+	defer c.Request().Body.Close()
+
+	ctx := c.Request().Context()
+
+	appInfo, err := h.appCase.GetAppDetailByKBIDAndAppType(ctx, kbID, domain.AppTypeWecomAIBot)
+	if err != nil {
+		return h.NewResponseWithError(c, "GetAppDetailByKBIDAndAppType failed", err)
+	}
+
+	if !appInfo.Settings.WecomAIBotSettings.IsEnabled {
+		return h.NewResponseWithError(c, "wecom app bot is not enabled", nil)
+	}
+
+	h.logger.Info("msg:", log.String("body", string(body)))
+	resp, err := h.wecomUsecase.HandleMsg(ctx, kbID, signature, timestamp, nonce, string(body), appInfo)
+	if err != nil {
+		h.logger.Error("wecom ai bot handle msg failed", log.Error(err))
+		return err
+	}
+
+	return c.String(http.StatusOK, resp)
 }

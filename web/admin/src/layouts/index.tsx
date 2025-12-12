@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import Header from '@/components/Header';
 import Sidebar from '@/components/Sidebar';
 import KBCreate from '@/components/KB/KBCreate';
+import CreateWikiModal from '@/components/CreateWikiModal';
 import { getApiV1ModelList } from '@/request/Model';
 import { getApiV1KnowledgeBaseList } from '@/request/KnowledgeBase';
 import { getApiV1User } from '@/request/User';
@@ -58,8 +59,13 @@ const useAuth = (hasAuth: boolean) => {
   };
 
   const initData = () => {
-    Promise.all([getModel(), getUser(), getKbList()]).then(
-      ([modelStatus, user, kbList]) => {
+    getUser().then(user => {
+      Promise.all([
+        user.role === ConstsUserRole.UserRoleAdmin
+          ? getModel()
+          : Promise.resolve(null),
+        getKbList(),
+      ]).then(([modelStatus, kbList]) => {
         if (
           user.role === ConstsUserRole.UserRoleUser &&
           kbList.length === 0 &&
@@ -67,8 +73,8 @@ const useAuth = (hasAuth: boolean) => {
         ) {
           navigate('401');
         }
-      },
-    );
+      });
+    });
   };
 
   useEffect(() => {
@@ -105,7 +111,8 @@ export const MainLayout = () => {
           <Outlet />
         </Box>
       </Box>
-      <KBCreate />
+      {/* <KBCreate /> */}
+      <CreateWikiModal />
     </>
   );
 };

@@ -1,15 +1,16 @@
 import ErrorComponent from '@/components/error';
 import StoreProvider from '@/provider';
+import { ThemeStoreProvider } from '@/provider/themeStore';
 import { getShareV1AppWebInfo } from '@/request/ShareApp';
 import { getShareProV1AuthInfo } from '@/request/pro/ShareAuth';
-import { darkTheme, lightTheme } from '@/theme';
-import { ThemeProvider } from '@ctzhian/ui';
+import Script from 'next/script';
 import { Box } from '@mui/material';
-import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
+import { AppRouterCacheProvider } from '@mui/material-nextjs/v16-appRouter';
 import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 import { getSelectorsByUserAgent } from 'react-device-detect';
+import { getBasePath, getImagePath } from '@/utils';
 import './globals.css';
 
 const gilory = localFont({
@@ -39,18 +40,20 @@ export const viewport: Viewport = {
 
 export async function generateMetadata(): Promise<Metadata> {
   const kbDetail: any = await getShareV1AppWebInfo();
+  const basePath = getBasePath(kbDetail?.base_url || '');
+  const icon = getImagePath(kbDetail?.settings?.icon || '', basePath);
 
   return {
     metadataBase: new URL(process.env.TARGET || ''),
     title: kbDetail?.settings?.title || 'Panda-Wiki',
     description: kbDetail?.settings?.desc || '',
     icons: {
-      icon: kbDetail?.settings?.icon || '/favicon.png',
+      icon: icon || `${basePath}/favicon.png`,
     },
     openGraph: {
       title: kbDetail?.settings?.title || 'Panda-Wiki',
       description: kbDetail?.settings?.desc || '',
-      images: kbDetail?.settings?.icon ? [kbDetail.settings.icon] : [],
+      images: icon ? [icon] : [],
     },
   };
 }
@@ -62,11 +65,15 @@ const Layout = async ({
 }>) => {
   const headersList = await headers();
   const userAgent = headersList.get('user-agent');
+  const cookieStore = await cookies();
+  const themeMode = (cookieStore.get('theme_mode')?.value || 'light') as
+    | 'light'
+    | 'dark';
+
   let error: any = null;
 
   const [kbDetailResolve, authInfoResolve] = await Promise.allSettled([
     getShareV1AppWebInfo(),
-    // @ts-ignore
     getShareProV1AuthInfo({}),
   ]);
 
@@ -82,19 +89,25 @@ const Layout = async ({
     error = authInfoResolve.reason;
   }
 
-  const themeMode = kbDetail?.settings?.theme_mode || 'light';
-
   const { isMobile } = getSelectorsByUserAgent(userAgent || '') || {
     isMobile: false,
   };
 
+  const basePath = getBasePath(kbDetail?.base_url || '');
+
   return (
     <html lang='en'>
+      <Script
+        id='base-path'
+        dangerouslySetInnerHTML={{
+          __html: `window._BASE_PATH_ = '${basePath}';`,
+        }}
+      />
       <body
-        className={`${gilory.variable} ${themeMode === 'dark' ? 'dark' : ''}`}
+        className={`${gilory.variable} ${themeMode === 'dark' ? 'dark' : 'light'}`}
       >
         <AppRouterCacheProvider>
-          <ThemeProvider theme={themeMode === 'dark' ? darkTheme : lightTheme}>
+          <ThemeStoreProvider themeMode={themeMode}>
             <StoreProvider
               kbDetail={kbDetail}
               themeMode={themeMode || 'light'}
@@ -111,7 +124,7 @@ const Layout = async ({
                 {error ? <ErrorComponent error={error} /> : children}
               </Box>
             </StoreProvider>
-          </ThemeProvider>
+          </ThemeStoreProvider>
         </AppRouterCacheProvider>
       </body>
     </html>

@@ -1,37 +1,30 @@
+import NoData from '@/assets/images/nodata.png';
+import { DndContext } from '@dnd-kit/core';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import { Box, IconButton, Menu, MenuItem, Stack } from '@mui/material';
+import dayjs from 'dayjs';
 import React, {
+  createContext,
+  useContext,
   useEffect,
   useMemo,
   useState,
-  createContext,
-  useContext,
 } from 'react';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import {
-  Box,
-  Stack,
-  IconButton,
-  Menu,
-  MenuItem,
-  Button,
-  ButtonBase,
-} from '@mui/material';
-import dayjs from 'dayjs';
-import NoData from '@/assets/images/nodata.png';
-import { DndContext } from '@dnd-kit/core';
+
 import {
   SortableTree,
-  TreeItems,
-  SimpleTreeItemWrapper,
   TreeItemComponentProps,
-} from 'dnd-kit-sortable-tree';
-import { ItemChangedReason } from 'dnd-kit-sortable-tree/dist/types';
-
-import { Icon, Modal, Table } from '@ctzhian/ui';
-import { ColumnType } from '@ctzhian/ui/dist/Table';
-import { GithubComChaitinPandaWikiProApiAuthV1AuthGroupTreeItem } from '@/request/pro/types';
+  TreeItems,
+  TreeItemWrapper,
+} from '@/components/TreeDragSortable';
+import { ItemChangedReason } from '@/components/TreeDragSortable/types';
 import { treeSx } from '@/constant/styles';
-import { useAppSelector } from '@/store';
 import { getApiProV1AuthGroupDetail } from '@/request/pro/AuthGroup';
+import { GithubComChaitinPandaWikiProApiAuthV1AuthGroupTreeItem } from '@/request/pro/types';
+import { useAppSelector } from '@/store';
+import { Modal, Table } from '@ctzhian/ui';
+import { ColumnType } from '@ctzhian/ui/dist/Table';
+import { IconGengduo, IconYonghuwenjianjia } from '@panda-wiki/icons';
 
 type TreeNode = {
   id: string | number;
@@ -106,7 +99,7 @@ const TreeItem = React.forwardRef<
   return (
     <Box
       sx={[
-        treeSx(false, 'move'),
+        treeSx(true),
         {
           px: 1,
           '&:hover': {
@@ -128,7 +121,7 @@ const TreeItem = React.forwardRef<
           <div />
         )}
         <Box sx={{ flex: 1 }}>
-          <SimpleTreeItemWrapper
+          <TreeItemWrapper
             {...props}
             indentationWidth={23}
             disableCollapseOnItemClick={false}
@@ -185,7 +178,7 @@ const TreeItem = React.forwardRef<
                       size='small'
                       onClick={e => handleMenuOpen(e, item)}
                     >
-                      <Icon type='icon-gengduo' />
+                      <IconGengduo sx={{ fontSize: 16 }} />
                     </IconButton>
                   </Box>
                 )}
@@ -206,7 +199,7 @@ const TreeItem = React.forwardRef<
                 )}
               </Stack>
             </Stack>
-          </SimpleTreeItemWrapper>
+          </TreeItemWrapper>
         </Box>
       </Stack>
     </Box>
@@ -479,10 +472,7 @@ const GroupModal = ({
                 />
               ))}
             {record.type === 'group' && (
-              <Icon
-                type='icon-yonghuwenjianjia'
-                sx={{ fontSize: 16, color: 'info.main' }}
-              />
+              <IconYonghuwenjianjia sx={{ fontSize: 16, color: 'info.main' }} />
             )}
             {text}
           </Stack>

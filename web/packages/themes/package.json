@@ -4,9 +4,11 @@
   "description": "",
   "main": "./src/index.ts",
   "type": "module",
+  "types": "./theme.d.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./*": "./src/*.ts"
+    "./*": "./src/*.ts",
+    "./types": "./theme.d.ts"
   },
   "keywords": [],
   "author": "",

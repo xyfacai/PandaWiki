@@ -1,29 +1,41 @@
 'use client';
-import { postShareProV1FileUploadWithProgress } from '@/request/pro/otherCustomer';
 import Emoji from '@/components/emoji';
+import { postShareProV1FileUploadWithProgress } from '@/request/pro/otherCustomer';
 import { V1NodeDetailResp } from '@/request/types';
-import { Box, Stack, TextField } from '@mui/material';
-import { Editor, TocList, useTiptap, UseTiptapReturn } from '@ctzhian/tiptap';
+import {
+  Editor,
+  EditorMarkdown,
+  MarkdownEditorRef,
+  TocList,
+  useTiptap,
+  UseTiptapReturn,
+} from '@ctzhian/tiptap';
 import { message } from '@ctzhian/ui';
-import { IconZiti, IconAShijian2 } from '@panda-wiki/icons';
+import { Box, Stack, TextField } from '@mui/material';
+import { IconAShijian2, IconZiti } from '@panda-wiki/icons';
 import dayjs from 'dayjs';
-import { useCallback, useEffect, useState } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWrapContext } from '..';
 import AIGenerate from './AIGenerate';
+import ConfirmModal from './ConfirmModal';
 import Header from './Header';
 import Toc from './Toc';
 import Toolbar from './Toolbar';
-import ConfirmModal from './ConfirmModal';
-import { useParams } from 'next/navigation';
+import IconPageview1 from '@panda-wiki/icons/IconPageview1';
+import { useBasePath } from '@/hooks/useBasePath';
 
 interface WrapProps {
   detail: V1NodeDetailResp;
 }
 
 const Wrap = ({ detail: defaultDetail = {} }: WrapProps) => {
-  const { catalogOpen, nodeDetail, setNodeDetail, onSave } = useWrapContext();
+  const searchParams = useSearchParams();
+  const contentType = searchParams.get('contentType') || 'html';
+  const { nodeDetail, setNodeDetail, onSave } = useWrapContext();
   const { id } = useParams();
-
+  const baseUrl = useBasePath();
+  const markdownEditorRef = useRef<MarkdownEditorRef>(null);
   const [characterCount, setCharacterCount] = useState(0);
   const [headings, setHeadings] = useState<TocList>([]);
   const [fixedToc, setFixedToc] = useState(false);
@@ -31,6 +43,14 @@ const Wrap = ({ detail: defaultDetail = {} }: WrapProps) => {
   const [aiGenerateOpen, setAiGenerateOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+
+  const isMarkdown = useMemo(() => {
+    if (!id && contentType === 'md') {
+      return true;
+    }
+    return defaultDetail.meta?.content_type === 'md';
+  }, [defaultDetail.meta?.content_type, contentType]);
+
   const updateDetail = (value: V1NodeDetailResp) => {
     setNodeDetail({
       ...nodeDetail,
@@ -73,8 +93,10 @@ const Wrap = ({ detail: defaultDetail = {} }: WrapProps) => {
   };
 
   const editorRef = useTiptap({
-    editable: true,
     immediatelyRender: false,
+    editable: !isMarkdown,
+    contentType: isMarkdown ? 'markdown' : 'html',
+    baseUrl: baseUrl,
     content: defaultDetail?.content || '',
     exclude: ['invisibleCharacters', 'youtube', 'mention'],
     onCreate: ({ editor: tiptapEditor }) => {
@@ -106,16 +128,32 @@ const Wrap = ({ detail: defaultDetail = {} }: WrapProps) => {
       if ((event.ctrlKey || event.metaKey) && event.key === 's') {
         event.preventDefault();
         if (editorRef && editorRef.editor) {
-          const html = editorRef.getHTML();
+          const value = editorRef.getContent();
           updateDetail({
-            content: html,
+            content: value,
           });
-          setConfirmModalOpen(true);
+          setTimeout(() => {
+            if (checkRequiredFields()) {
+              setConfirmModalOpen(true);
+            }
+          }, 10);
         }
       }
     },
-    [editorRef, onSave],
+    [editorRef],
   );
+
+  const checkRequiredFields = useCallback(() => {
+    if (!nodeDetail?.name?.trim()) {
+      message.error('请先输入文档名称');
+      return false;
+    }
+    if (!nodeDetail?.content?.trim()) {
+      message.error('请先输入文档内容');
+      return false;
+    }
+    return true;
+  }, [nodeDetail]);
 
   useEffect(() => {
     document.addEventListener('keydown', handleGlobalSave);
@@ -144,14 +182,22 @@ const Wrap = ({ detail: defaultDetail = {} }: WrapProps) => {
         }}
       >
         <Header
-          edit={isEditing}
           detail={nodeDetail!}
-          updateDetail={updateDetail}
           handleSave={async () => {
-            setConfirmModalOpen(true);
+            if (!isMarkdown) {
+              const value = editorRef.getContent();
+              updateDetail({
+                content: value,
+              });
+            }
+            if (checkRequiredFields()) {
+              setConfirmModalOpen(true);
+            }
           }}
         />
-        <Toolbar editorRef={editorRef} handleAiGenerate={handleAiGenerate} />
+        {!isMarkdown && (
+          <Toolbar editorRef={editorRef} handleAiGenerate={handleAiGenerate} />
+        )}
       </Box>
       <Box
         sx={{
@@ -163,8 +209,8 @@ const Wrap = ({ detail: defaultDetail = {} }: WrapProps) => {
         <Box
           sx={{
             width: `calc(100vw - 160px - ${fixedToc ? 292 : 0}px)`,
-            p: '72px 80px 150px',
-            mt: '102px',
+            p: isMarkdown ? '72px 80px' : '72px 80px 150px',
+            mt: isMarkdown ? '56px' : '102px',
             mx: 'auto',
           }}
         >
@@ -228,10 +274,10 @@ const Wrap = ({ detail: defaultDetail = {} }: WrapProps) => {
                 gap={0.5}
                 sx={{
                   fontSize: 12,
-                  color: 'text.auxiliary',
+                  color: 'text.tertiary',
                   cursor: 'text',
                   ':hover': {
-                    color: 'text.auxiliary',
+                    color: 'text.tertiary',
                   },
                 }}
               >
@@ -247,30 +293,68 @@ const Wrap = ({ detail: defaultDetail = {} }: WrapProps) => {
               direction={'row'}
               alignItems={'center'}
               gap={0.5}
-              sx={{ fontSize: 12, color: 'text.auxiliary' }}
+              sx={{ fontSize: 12, color: 'text.tertiary' }}
             >
               <IconZiti />
               {characterCount} 字
             </Stack>
+            <Stack
+              direction={'row'}
+              alignItems={'center'}
+              gap={0.5}
+              sx={{ fontSize: 12, color: 'text.tertiary' }}
+            >
+              <IconPageview1 sx={{ fontSize: 12 }} />
+              浏览量 {nodeDetail?.pv}
+            </Stack>
           </Stack>
-
-          <Box
-            sx={{
-              wordBreak: 'break-all',
-              '.tiptap.ProseMirror': {
-                overflowX: 'hidden',
-                minHeight: 'calc(100vh - 102px - 48px)',
-              },
-              '.tableWrapper': {
-                maxWidth: `calc(100vw - 160px - ${catalogOpen ? 292 : 0}px - ${fixedToc ? 292 : 0}px)`,
-                overflowX: 'auto',
-              },
-            }}
-          >
-            {editorRef.editor && <Editor editor={editorRef.editor} />}
-          </Box>
+          {editorRef.editor && (
+            <Box sx={{ ...(fixedToc && { display: 'flex' }) }}>
+              {isMarkdown ? (
+                <EditorMarkdown
+                  ref={markdownEditorRef}
+                  editor={editorRef.editor}
+                  value={nodeDetail?.content || defaultDetail?.content || ''}
+                  placeholder='请输入文档内容'
+                  onAceChange={value => {
+                    updateDetail({
+                      content: value,
+                    });
+                  }}
+                  height='calc(100vh - 340px)'
+                />
+              ) : (
+                <Box
+                  sx={{
+                    wordBreak: 'break-all',
+                    '.tiptap.ProseMirror': {
+                      overflowX: 'hidden',
+                      minHeight: 'calc(100vh - 102px - 48px)',
+                    },
+                    '.tableWrapper': {
+                      width: '100%',
+                      overflowX: 'auto',
+                    },
+                  }}
+                >
+                  <Editor editor={editorRef.editor} />
+                </Box>
+              )}
+            </Box>
+          )}
         </Box>
-        <Toc headings={headings} fixed={fixedToc} setFixed={setFixedToc} />
+        <Toc
+          headings={headings}
+          fixed={fixedToc}
+          setFixed={setFixedToc}
+          isMarkdown={isMarkdown}
+          scrollToHeading={
+            isMarkdown
+              ? headingText =>
+                  markdownEditorRef.current?.scrollToHeading(headingText)
+              : undefined
+          }
+        />
       </Box>
 
       <AIGenerate
@@ -284,12 +368,17 @@ const Wrap = ({ detail: defaultDetail = {} }: WrapProps) => {
         open={confirmModalOpen}
         onCancel={() => setConfirmModalOpen(false)}
         onOk={async (reason: string, token: string) => {
-          const value = editorRef.getHTML();
-          updateDetail({
-            content: value,
-          });
-          await onSave(value, reason, token);
-          setConfirmModalOpen(false);
+          if (editorRef) {
+            let value = nodeDetail?.content || '';
+            if (!isMarkdown) {
+              value = editorRef.getContent();
+              updateDetail({
+                content: value,
+              });
+            }
+            await onSave(value, reason, token, isMarkdown ? 'md' : 'html');
+            setConfirmModalOpen(false);
+          }
         }}
       />
     </>

@@ -2,9 +2,11 @@ package middleware
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -59,7 +61,15 @@ func (m *JWTMiddleware) Authorize(next echo.HandlerFunc) echo.HandlerFunc {
 
 		return m.jwtMiddleware(func(c echo.Context) error {
 			if userID, ok := m.MustGetUserID(c); ok {
-				c.Set("user_id", userID)
+				ctx := context.WithValue(c.Request().Context(), domain.CtxAuthInfoKey, &domain.CtxAuthInfo{
+					IsToken:    false,
+					Permission: consts.UserKBPermissionNull,
+					UserId:     userID,
+				})
+
+				req := c.Request().WithContext(ctx)
+				c.SetRequest(req)
+
 				m.userAccessRepo.UpdateAccessTime(userID)
 			}
 			return next(c)
@@ -86,9 +96,15 @@ func (m *JWTMiddleware) validateAPIToken(c echo.Context, token string, next echo
 		})
 	}
 
-	c.Set("user_id", apiToken.ID)
-	c.Set("is_token", true)
-	c.Set("permission", apiToken.Permission)
+	ctx := context.WithValue(c.Request().Context(), domain.CtxAuthInfoKey, &domain.CtxAuthInfo{
+		IsToken:    true,
+		Permission: apiToken.Permission,
+		UserId:     apiToken.UserID,
+		KBId:       apiToken.KbId,
+	})
+
+	req := c.Request().WithContext(ctx)
+	c.SetRequest(req)
 
 	return next(c)
 }
@@ -96,16 +112,32 @@ func (m *JWTMiddleware) validateAPIToken(c echo.Context, token string, next echo
 func (m *JWTMiddleware) ValidateUserRole(role consts.UserRole) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			userID := c.Get("user_id").(string)
-
-			valid, err := m.userAccessRepo.ValidateRole(userID, role)
-
-			if err != nil || !valid {
-				m.logger.Error("ValidateRole check", log.Any("user_id", userID), log.Any("valid", valid))
-				return c.JSON(http.StatusForbidden, domain.PWResponse{
+			authInfo := domain.GetAuthInfoFromCtx(c.Request().Context())
+			if authInfo == nil {
+				return c.JSON(http.StatusUnauthorized, domain.PWResponse{
 					Success: false,
-					Message: "StatusForbidden ValidateRole",
+					Message: "Unauthorized",
 				})
+			}
+
+			if authInfo.IsToken {
+				// token 视为普通用户 没有管理员相关权限
+				if role == consts.UserRoleAdmin {
+					return c.JSON(http.StatusUnauthorized, domain.PWResponse{
+						Success: false,
+						Message: "token not support admin role",
+					})
+				}
+			} else {
+				valid, err := m.userAccessRepo.ValidateRole(authInfo.UserId, role)
+
+				if err != nil || !valid {
+					m.logger.Error("ValidateRole check", log.Any("user_id", authInfo.UserId), log.Any("valid", valid))
+					return c.JSON(http.StatusForbidden, domain.PWResponse{
+						Success: false,
+						Message: "StatusForbidden ValidateRole",
+					})
+				}
 			}
 
 			return next(c)
@@ -116,15 +148,27 @@ func (m *JWTMiddleware) ValidateUserRole(role consts.UserRole) echo.MiddlewareFu
 func (m *JWTMiddleware) ValidateKBUserPerm(perm consts.UserKBPermission) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-
-			userID := c.Get("user_id").(string)
+			authInfo := domain.GetAuthInfoFromCtx(c.Request().Context())
+			if authInfo == nil {
+				return c.JSON(http.StatusUnauthorized, domain.PWResponse{
+					Success: false,
+					Message: "Unauthorized",
+				})
+			}
 
 			kbId, _ := GetKbID(c)
 
-			if m.IsUseToken(c) {
-				// 使用token的情况
-				tokenPermission := c.Get("permission").(consts.UserKBPermission)
-				if tokenPermission != consts.UserKBPermissionFullControl && tokenPermission != perm {
+			if authInfo.IsToken {
+
+				if authInfo.KBId != kbId {
+					m.logger.Error("ValidateKBUserPerm ValidateTokenKBPerm kbId", "authInfo.KBId", authInfo.KBId, "kbId", kbId)
+					return c.JSON(http.StatusForbidden, domain.PWResponse{
+						Success: false,
+						Message: "Unauthorized ValidateTokenKBPerm kbId",
+					})
+				}
+
+				if authInfo.Permission != consts.UserKBPermissionFullControl && authInfo.Permission != perm {
 					return c.JSON(http.StatusForbidden, domain.PWResponse{
 						Success: false,
 						Message: "Unauthorized ValidateTokenKBPerm",
@@ -132,12 +176,12 @@ func (m *JWTMiddleware) ValidateKBUserPerm(perm consts.UserKBPermission) echo.Mi
 				}
 			} else {
 				// 正常用户请求
-				valid, err := m.userAccessRepo.ValidateKBPerm(kbId, userID, perm)
+				valid, err := m.userAccessRepo.ValidateKBPerm(kbId, authInfo.UserId, perm)
 				if err != nil || !valid {
 					if err != nil {
 						m.logger.Error("ValidateKBUserPerm ValidateKBPerm failed", log.Error(err))
 					} else {
-						m.logger.Info("ValidateKBUserPerm ValidateKBPerm failed", log.String("kb_id", kbId), log.String("user_id", userID))
+						m.logger.Info("ValidateKBUserPerm ValidateKBPerm failed", log.String("kb_id", kbId), log.String("user_id", authInfo.UserId))
 					}
 					return c.JSON(http.StatusForbidden, domain.PWResponse{
 						Success: false,
@@ -151,7 +195,7 @@ func (m *JWTMiddleware) ValidateKBUserPerm(perm consts.UserKBPermission) echo.Mi
 	}
 }
 
-func (m *JWTMiddleware) ValidateLicenseEdition(needEdition consts.LicenseEdition) echo.MiddlewareFunc {
+func (m *JWTMiddleware) ValidateLicenseEdition(needEditions ...consts.LicenseEdition) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 
@@ -163,7 +207,7 @@ func (m *JWTMiddleware) ValidateLicenseEdition(needEdition consts.LicenseEdition
 				})
 			}
 
-			if edition < needEdition {
+			if !slices.Contains(needEditions, edition) {
 				return c.JSON(http.StatusForbidden, domain.PWResponse{
 					Success: false,
 					Message: "Unauthorized ValidateLicenseEdition",
@@ -191,18 +235,19 @@ func (m *JWTMiddleware) MustGetUserID(c echo.Context) (string, bool) {
 func GetKbID(c echo.Context) (string, error) {
 	switch c.Request().Method {
 	case http.MethodGet, http.MethodDelete:
-
-		kbId := c.QueryParam("kb_id")
-		if kbId != "" {
-			return kbId, nil
-		}
-
+		var kbId string
 		if strings.Contains(c.Request().URL.Path, "knowledge_base") {
 			kbId = c.QueryParam("id")
 			if kbId != "" {
 				return kbId, nil
 			}
 		}
+
+		kbId = c.QueryParam("kb_id")
+		if kbId != "" {
+			return kbId, nil
+		}
+
 		return "", nil
 
 	case http.MethodPost, http.MethodPatch, http.MethodPut:
@@ -216,28 +261,18 @@ func GetKbID(c echo.Context) (string, error) {
 
 		var m map[string]interface{}
 		if err := json.Unmarshal(bodyBytes, &m); err == nil {
-			if id, exists := m["kb_id"].(string); exists && id != "" {
-				return id, nil
-			}
 			if strings.Contains(c.Request().URL.Path, "knowledge_base") {
 				if id, exists := m["id"].(string); exists && id != "" {
 					return id, nil
 				}
+			}
+
+			if id, exists := m["kb_id"].(string); exists && id != "" {
+				return id, nil
 			}
 		}
 		return "", nil
 	default:
 		return "", nil
 	}
-}
-
-func (m *JWTMiddleware) IsUseToken(c echo.Context) bool {
-	v := c.Get("is_token")
-	if v == nil {
-		return false
-	}
-	if b, ok := v.(bool); ok {
-		return b
-	}
-	return false
 }

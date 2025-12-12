@@ -14,7 +14,7 @@ import httpRequest, { ContentType, RequestParams } from "./httpClient";
 import {
   DomainResponse,
   GetShareV1NodeDetailParams,
-  V1RecommendNodeListItem,
+  V1ShareNodeDetailResp,
 } from "./types";
 
 /**
@@ -24,14 +24,21 @@ import {
  * @name GetShareV1NodeDetail
  * @summary GetNodeDetail
  * @request GET:/share/v1/node/detail
- * @response `200` `DomainResponse` OK
+ * @response `200` `(DomainResponse & {
+    data?: V1ShareNodeDetailResp,
+
+})` OK
  */
 
 export const getShareV1NodeDetail = (
   query: GetShareV1NodeDetailParams,
   params: RequestParams = {},
 ) =>
-  httpRequest<DomainResponse>({
+  httpRequest<
+    DomainResponse & {
+      data?: V1ShareNodeDetailResp;
+    }
+  >({
     path: `/share/v1/node/detail`,
     method: "GET",
     query: query,
@@ -53,32 +60,6 @@ export const getShareV1NodeDetail = (
 export const getShareV1NodeList = (params: RequestParams = {}) =>
   httpRequest<DomainResponse>({
     path: `/share/v1/node/list`,
-    method: "GET",
-    type: ContentType.Json,
-    format: "json",
-    ...params,
-  });
-
-/**
- * @description 推荐卡片列表
- *
- * @tags share_node
- * @name GetShareV1NodeRecommendList
- * @summary 推荐卡片列表
- * @request GET:/share/v1/node/recommend/list
- * @response `200` `(DomainResponse & {
-    data?: (V1RecommendNodeListItem)[],
-
-})` OK
- */
-
-export const getShareV1NodeRecommendList = (params: RequestParams = {}) =>
-  httpRequest<
-    DomainResponse & {
-      data?: V1RecommendNodeListItem[];
-    }
-  >({
-    path: `/share/v1/node/recommend/list`,
     method: "GET",
     type: ContentType.Json,
     format: "json",

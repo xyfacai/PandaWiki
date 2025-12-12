@@ -1,3 +1,5 @@
+/// <reference types="@panda-wiki/themes/types" />
+
 declare module '@cap.js/widget' {
   interface CapOptions {
     apiEndpoint: string;
@@ -10,3 +12,11 @@ declare module '@cap.js/widget' {
 
   export default Cap;
 }
+
+declare global {
+  interface Window {
+    _BASE_PATH_?: string;
+  }
+}
+
+export {};

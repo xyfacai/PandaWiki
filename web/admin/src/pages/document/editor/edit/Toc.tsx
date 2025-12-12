@@ -7,15 +7,18 @@ import {
   H6Icon,
   TocList,
 } from '@ctzhian/tiptap';
-import { Ellipsis, Icon } from '@ctzhian/ui';
+import { Ellipsis } from '@ctzhian/ui';
 import { Box, Drawer, IconButton, Stack } from '@mui/material';
 import { useState } from 'react';
+import { IconDingzi, IconIcon_tool_close } from '@panda-wiki/icons';
 
 interface TocProps {
   headings: TocList;
   fixed: boolean;
   setFixed: (fixed: boolean) => void;
   setShowSummary: (showSummary: boolean) => void;
+  isMarkdown: boolean;
+  scrollToHeading?: (headingText: string) => void;
 }
 
 const HeadingIcon = [
@@ -33,7 +36,13 @@ const HeadingSx = [
   { fontSize: 14, fontWeight: 400, color: 'text.disabled' },
 ];
 
-const Toc = ({ headings, fixed, setFixed }: TocProps) => {
+const Toc = ({
+  headings,
+  fixed,
+  setFixed,
+  isMarkdown,
+  scrollToHeading,
+}: TocProps) => {
   const storageTocOpen = localStorage.getItem('toc-open');
   const [open, setOpen] = useState(!!storageTocOpen);
   const levels = Array.from(
@@ -96,11 +105,12 @@ const Toc = ({ headings, fixed, setFixed }: TocProps) => {
           flexShrink: 0,
           '& .MuiDrawer-paper': {
             p: 1,
-            boxShadow: 'none !important',
-            mt: '102px',
+            mt: isMarkdown ? '56px' : '102px',
             bgcolor: 'background.default',
             width: 292,
             boxSizing: 'border-box',
+            border: 'none',
+            boxShadow: '0px 10px 10px 0px rgba(0, 0, 0, 0.1)',
           },
         }}
       >
@@ -130,10 +140,11 @@ const Toc = ({ headings, fixed, setFixed }: TocProps) => {
               setFixed(!fixed);
             }}
           >
-            <Icon
-              type={!fixed ? 'icon-dingzi' : 'icon-icon_tool_close'}
-              sx={{ fontSize: 18 }}
-            />
+            {!fixed ? (
+              <IconDingzi sx={{ fontSize: 18 }} />
+            ) : (
+              <IconIcon_tool_close sx={{ fontSize: 18 }} />
+            )}
           </IconButton>
         </Stack>
         <Stack
@@ -169,15 +180,42 @@ const Toc = ({ headings, fixed, setFixed }: TocProps) => {
                   onClick={() => {
                     const element = document.getElementById(it.id);
                     if (element) {
-                      const offset = 100;
-                      const elementPosition =
-                        element.getBoundingClientRect().top;
-                      const offsetPosition =
-                        elementPosition + window.pageYOffset - offset;
-                      window.scrollTo({
-                        top: offsetPosition,
-                        behavior: 'smooth',
-                      });
+                      if (isMarkdown) {
+                        // 在 Markdown 模式下，滚动预览容器
+                        const container = document.getElementById(
+                          'markdown-preview-container',
+                        );
+                        if (container) {
+                          const containerRect =
+                            container.getBoundingClientRect();
+                          const elementRect = element.getBoundingClientRect();
+                          const offset = 20; // 顶部偏移
+                          const scrollTop =
+                            container.scrollTop +
+                            elementRect.top -
+                            containerRect.top -
+                            offset;
+                          container.scrollTo({
+                            top: scrollTop,
+                            behavior: 'smooth',
+                          });
+                        }
+                        // 同时滚动 AceEditor
+                        if (scrollToHeading) {
+                          scrollToHeading(it.textContent);
+                        }
+                      } else {
+                        // 在富文本编辑器模式下，滚动整个窗口
+                        const offset = 100;
+                        const elementPosition =
+                          element.getBoundingClientRect().top;
+                        const offsetPosition =
+                          elementPosition + window.pageYOffset - offset;
+                        window.scrollTo({
+                          top: offsetPosition,
+                          behavior: 'smooth',
+                        });
+                      }
                     }
                   }}
                 >

@@ -234,11 +234,14 @@ const docTemplate = `{
                             "widget",
                             "dingtalk_bot",
                             "feishu_bot",
+                            "lark_bot",
                             "wechat_bot",
+                            "wecom_ai_bot",
                             "wechat_service_bot",
                             "discord_bot",
                             "wechat_official_account",
-                            "openai_api"
+                            "openai_api",
+                            "mcp_server"
                         ],
                         "type": "string",
                         "x-enum-varnames": [
@@ -252,11 +255,14 @@ const docTemplate = `{
                             "SourceTypeWidget",
                             "SourceTypeDingtalkBot",
                             "SourceTypeFeishuBot",
+                            "SourceTypeLarkBot",
                             "SourceTypeWechatBot",
+                            "SourceTypeWecomAIBot",
                             "SourceTypeWechatServiceBot",
                             "SourceTypeDiscordBot",
                             "SourceTypeWechatOfficialAccount",
-                            "SourceTypeOpenAIAPI"
+                            "SourceTypeOpenAIAPI",
+                            "SourceTypeMcpServer"
                         ],
                         "name": "source_type",
                         "in": "query",
@@ -659,9 +665,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/crawler/confluence/analysis_export_file": {
+        "/api/v1/crawler/export": {
             "post": {
-                "description": "Analyze Confluence Export File",
+                "description": "CrawlerExport",
                 "consumes": [
                     "application/json"
                 ],
@@ -671,498 +677,7 @@ const docTemplate = `{
                 "tags": [
                     "crawler"
                 ],
-                "summary": "AnalysisConfluenceExportFile",
-                "parameters": [
-                    {
-                        "type": "file",
-                        "description": "file",
-                        "name": "file",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "kb_id",
-                        "name": "kb_id",
-                        "in": "formData",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/domain.AnalysisConfluenceResp"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/epub/convert": {
-            "post": {
-                "description": "QpubConvert",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "QpubConvert",
-                "parameters": [
-                    {
-                        "type": "file",
-                        "description": "file",
-                        "name": "file",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "kb_id",
-                        "name": "kb_id",
-                        "in": "formData",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/domain.EpubResp"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/feishu/get_doc": {
-            "post": {
-                "description": "Get Docx in Feishu Spaces",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "FeishuGetDocx",
-                "parameters": [
-                    {
-                        "description": "Get Docx",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/domain.GetDocxReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/domain.GetDocxResp"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/feishu/list_doc": {
-            "post": {
-                "description": "List Docx in Feishu Spaces",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "FeishuListDoc",
-                "parameters": [
-                    {
-                        "description": "Search Docx",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/domain.SearchDocxReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/domain.SearchDocxResp"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/feishu/list_spaces": {
-            "post": {
-                "description": "List All Feishu Spaces",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "FeishuListSpaces",
-                "parameters": [
-                    {
-                        "description": "List Spaces",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/domain.GetSpaceListReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/domain.GetSpaceListResp"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/feishu/search_wiki": {
-            "post": {
-                "description": "Search Wiki in Feishu Spaces",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "FeishuSearchWiki",
-                "parameters": [
-                    {
-                        "description": "Search Wiki",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/domain.SearchWikiReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/domain.SearchWikiResp"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/notion/get_doc": {
-            "post": {
-                "description": "GetDocs",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "GetDocs",
-                "parameters": [
-                    {
-                        "description": "Get Docs",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/domain.GetDocsReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/domain.Page"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/notion/get_list": {
-            "post": {
-                "description": "NotionGetList",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "NotionGetList",
-                "parameters": [
-                    {
-                        "description": "Notion Get List",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/domain.NotnionGetListReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/domain.PageInfo"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/parse_rss": {
-            "post": {
-                "description": "Parse RSS",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "Parse RSS",
-                "parameters": [
-                    {
-                        "description": "Parse URL",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/domain.ParseURLReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/domain.ParseURLResp"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/parse_sitemap": {
-            "post": {
-                "description": "Parse Sitemap",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "Parse Sitemap",
-                "parameters": [
-                    {
-                        "description": "Parse URL",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/domain.ParseURLReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/domain.ParseURLResp"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/scrape": {
-            "post": {
-                "description": "Scrape",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "Scrape",
+                "summary": "CrawlerExport",
                 "parameters": [
                     {
                         "description": "Scrape",
@@ -1170,7 +685,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/domain.ScrapeReq"
+                            "$ref": "#/definitions/v1.CrawlerExportReq"
                         }
                     }
                 ],
@@ -1186,7 +701,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/domain.ScrapeResp"
+                                            "$ref": "#/definitions/v1.CrawlerExportResp"
                                         }
                                     }
                                 }
@@ -1196,9 +711,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/crawler/siyuan/analysis_export_file": {
+        "/api/v1/crawler/parse": {
             "post": {
-                "description": "Analyze SiYuan Export File",
+                "description": "解析文档树",
                 "consumes": [
                     "application/json"
                 ],
@@ -1208,21 +723,16 @@ const docTemplate = `{
                 "tags": [
                     "crawler"
                 ],
-                "summary": "AnalysisSiyuanExportFile",
+                "summary": "解析文档树",
                 "parameters": [
                     {
-                        "type": "file",
-                        "description": "file",
-                        "name": "file",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "kb_id",
-                        "name": "kb_id",
-                        "in": "formData",
-                        "required": true
+                        "description": "Scrape",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.CrawlerParseReq"
+                        }
                     }
                 ],
                 "responses": {
@@ -1237,10 +747,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/domain.SiYuanResp"
-                                            }
+                                            "$ref": "#/definitions/v1.CrawlerParseResp"
                                         }
                                     }
                                 }
@@ -1250,11 +757,11 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/crawler/wikijs/analysis_export_file": {
-            "post": {
-                "description": "AnalysisWikijsExportFile",
+        "/api/v1/crawler/result": {
+            "get": {
+                "description": "Retrieve the result of a previously started scraping task",
                 "consumes": [
-                    "multipart/form-data"
+                    "application/json"
                 ],
                 "produces": [
                     "application/json"
@@ -1262,21 +769,16 @@ const docTemplate = `{
                 "tags": [
                     "crawler"
                 ],
-                "summary": "AnalysisWikijsExportFile",
+                "summary": "Get Crawler Result",
                 "parameters": [
                     {
-                        "type": "file",
-                        "description": "file",
-                        "name": "file",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "kb_id",
-                        "name": "kb_id",
-                        "in": "formData",
-                        "required": true
+                        "description": "Crawler Result Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.CrawlerResultReq"
+                        }
                     }
                 ],
                 "responses": {
@@ -1291,10 +793,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/domain.WikiJSResp"
-                                            }
+                                            "$ref": "#/definitions/v1.CrawlerResultResp"
                                         }
                                     }
                                 }
@@ -1304,9 +803,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/crawler/yuque/analysis_export_file": {
+        "/api/v1/crawler/results": {
             "post": {
-                "description": "Analyze Yuque Export File",
+                "description": "Retrieve the results of a previously started scraping task",
                 "consumes": [
                     "application/json"
                 ],
@@ -1316,21 +815,16 @@ const docTemplate = `{
                 "tags": [
                     "crawler"
                 ],
-                "summary": "AnalysisYuqueExportFile",
+                "summary": "Get Crawler Results",
                 "parameters": [
                     {
-                        "type": "file",
-                        "description": "file",
-                        "name": "file",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "kb_id",
-                        "name": "kb_id",
-                        "in": "formData",
-                        "required": true
+                        "description": "Crawler Results Request",
+                        "name": "param",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.CrawlerResultsReq"
+                        }
                     }
                 ],
                 "responses": {
@@ -1345,14 +839,45 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/domain.YuqueResp"
-                                            }
+                                            "$ref": "#/definitions/v1.CrawlerResultsResp"
                                         }
                                     }
                                 }
                             ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/creation/tab-complete": {
+            "post": {
+                "description": "Tab-based document completion similar to AI coding's FIM (Fill in Middle)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "creation"
+                ],
+                "summary": "Tab-based document completion",
+                "parameters": [
+                    {
+                        "description": "tab completion request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.CompleteReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "success",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -1422,6 +947,42 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/domain.ObjectUploadResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/file/upload/anydoc": {
+            "post": {
+                "description": "Upload Anydoc File",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "tags": [
+                    "file"
+                ],
+                "summary": "Upload Anydoc File",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "File",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "File Path",
+                        "name": "path",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.AnydocUploadResp"
                         }
                     }
                 }
@@ -2006,6 +1567,41 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/model/mode-setting": {
+            "get": {
+                "description": "get current model mode setting including mode, API key and chat model",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "model"
+                ],
+                "summary": "get model mode setting",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/domain.ModelModeSetting"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/model/provider/supported": {
             "post": {
                 "description": "get provider supported model list",
@@ -2043,6 +1639,52 @@ const docTemplate = `{
                                     "properties": {
                                         "data": {
                                             "$ref": "#/definitions/domain.GetProviderModelListResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/model/switch-mode": {
+            "post": {
+                "description": "switch model mode between manual and auto",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "model"
+                ],
+                "summary": "switch mode",
+                "parameters": [
+                    {
+                        "description": "switch mode request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.SwitchModeReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/domain.SwitchModeResp"
                                         }
                                     }
                                 }
@@ -2558,6 +2200,58 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/node/restudy": {
+            "post": {
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "description": "文档重新学习",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Node"
+                ],
+                "summary": "文档重新学习",
+                "operationId": "v1-NodeRestudy",
+                "parameters": [
+                    {
+                        "description": "para",
+                        "name": "param",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.NodeRestudyReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/v1.NodeRestudyResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/node/summary": {
             "post": {
                 "security": [
@@ -2719,7 +2413,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/domain.ConversationDistribution"
+                                                "$ref": "#/definitions/v1.StatConversationDistributionResp"
                                             }
                                         }
                                     }
@@ -3167,13 +2861,10 @@ const docTemplate = `{
                 "summary": "DeleteUser",
                 "parameters": [
                     {
-                        "description": "DeleteUser Request",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/v1.DeleteUserReq"
-                        }
+                        "type": "string",
+                        "name": "user_id",
+                        "in": "query",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -3324,6 +3015,50 @@ const docTemplate = `{
                                     "properties": {
                                         "data": {
                                             "$ref": "#/definitions/domain.AppInfoResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/share/v1/app/wechat/info": {
+            "get": {
+                "description": "WechatAppInfo",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "share_chat"
+                ],
+                "summary": "WechatAppInfo",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "kb id",
+                        "name": "X-KB-ID",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/v1.WechatAppInfoResp"
                                         }
                                     }
                                 }
@@ -3733,6 +3468,52 @@ const docTemplate = `{
                 }
             }
         },
+        "/share/v1/chat/search": {
+            "post": {
+                "description": "ChatSearch",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "share_chat_search"
+                ],
+                "summary": "ChatSearch",
+                "parameters": [
+                    {
+                        "description": "request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.ChatSearchReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/domain.ChatSearchResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/share/v1/chat/widget": {
             "post": {
                 "description": "ChatWidget",
@@ -3743,7 +3524,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "share_chat"
+                    "Widget"
                 ],
                 "summary": "ChatWidget",
                 "parameters": [
@@ -3769,6 +3550,52 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/domain.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/share/v1/chat/widget/search": {
+            "post": {
+                "description": "WidgetSearch",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Widget"
+                ],
+                "summary": "WidgetSearch",
+                "parameters": [
+                    {
+                        "description": "Comment",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.ChatSearchReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/domain.ChatSearchResp"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -3855,6 +3682,65 @@ const docTemplate = `{
                                     "properties": {
                                         "data": {
                                             "$ref": "#/definitions/share.ShareCommentLists"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/share/v1/common/file/upload": {
+            "post": {
+                "description": "前台用户上传文件,目前只支持图片文件上传",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ShareFile"
+                ],
+                "summary": "文件上传",
+                "operationId": "share-FileUpload",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "kb id",
+                        "name": "X-KB-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "file",
+                        "description": "File",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "captcha_token",
+                        "name": "captcha_token",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/v1.FileUploadResp"
                                         }
                                     }
                                 }
@@ -3955,7 +3841,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/domain.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/v1.ShareNodeDetailResp"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -3988,53 +3886,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/domain.Response"
-                        }
-                    }
-                }
-            }
-        },
-        "/share/v1/node/recommend/list": {
-            "get": {
-                "description": "推荐卡片列表",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "share_node"
-                ],
-                "summary": "推荐卡片列表",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "kb id",
-                        "name": "X-KB-ID",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.Response"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/v1.RecommendNodeListItem"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
                         }
                     }
                 }
@@ -4088,6 +3939,39 @@ const docTemplate = `{
                 }
             }
         },
+        "/share/v1/openapi/lark/bot/{kb_id}": {
+            "post": {
+                "description": "Lark机器人请求",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ShareOpenapi"
+                ],
+                "summary": "Lark机器人请求",
+                "operationId": "v1-LarkBot",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "知识库ID",
+                        "name": "kb_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.PWResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/share/v1/stat/page": {
             "post": {
                 "description": "RecordPage",
@@ -4124,6 +4008,40 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "anydoc.Child": {
+            "type": "object",
+            "properties": {
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/anydoc.Child"
+                    }
+                },
+                "value": {
+                    "$ref": "#/definitions/anydoc.Value"
+                }
+            }
+        },
+        "anydoc.Value": {
+            "type": "object",
+            "properties": {
+                "file": {
+                    "type": "boolean"
+                },
+                "file_type": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "summary": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
         "consts.AuthType": {
             "type": "string",
             "enum": [
@@ -4170,28 +4088,108 @@ const docTemplate = `{
                 "CopySettingDisabled"
             ]
         },
+        "consts.CrawlerSource": {
+            "type": "string",
+            "enum": [
+                "url",
+                "rss",
+                "sitemap",
+                "notion",
+                "feishu",
+                "file",
+                "epub",
+                "yuque",
+                "siyuan",
+                "mindoc",
+                "wikijs",
+                "confluence"
+            ],
+            "x-enum-varnames": [
+                "CrawlerSourceUrl",
+                "CrawlerSourceRSS",
+                "CrawlerSourceSitemap",
+                "CrawlerSourceNotion",
+                "CrawlerSourceFeishu",
+                "CrawlerSourceFile",
+                "CrawlerSourceEpub",
+                "CrawlerSourceYuque",
+                "CrawlerSourceSiyuan",
+                "CrawlerSourceMindoc",
+                "CrawlerSourceWikijs",
+                "CrawlerSourceConfluence"
+            ]
+        },
+        "consts.CrawlerStatus": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "in_process",
+                "completed",
+                "failed"
+            ],
+            "x-enum-varnames": [
+                "CrawlerStatusPending",
+                "CrawlerStatusInProcess",
+                "CrawlerStatusCompleted",
+                "CrawlerStatusFailed"
+            ]
+        },
+        "consts.HomePageSetting": {
+            "type": "string",
+            "enum": [
+                "doc",
+                "custom"
+            ],
+            "x-enum-comments": {
+                "HomePageSettingCustom": "自定义首页",
+                "HomePageSettingDoc": "文档页面"
+            },
+            "x-enum-descriptions": [
+                "文档页面",
+                "自定义首页"
+            ],
+            "x-enum-varnames": [
+                "HomePageSettingDoc",
+                "HomePageSettingCustom"
+            ]
+        },
         "consts.LicenseEdition": {
             "type": "integer",
             "format": "int32",
             "enum": [
                 0,
                 1,
-                2
+                2,
+                3
             ],
             "x-enum-comments": {
-                "LicenseEditionContributor": "联创版",
+                "LicenseEditionBusiness": "商业版",
                 "LicenseEditionEnterprise": "企业版",
-                "LicenseEditionFree": "开源版"
+                "LicenseEditionFree": "开源版",
+                "LicenseEditionProfession": "专业版"
             },
             "x-enum-descriptions": [
                 "开源版",
-                "联创版",
-                "企业版"
+                "专业版",
+                "企业版",
+                "商业版"
             ],
             "x-enum-varnames": [
                 "LicenseEditionFree",
-                "LicenseEditionContributor",
-                "LicenseEditionEnterprise"
+                "LicenseEditionProfession",
+                "LicenseEditionEnterprise",
+                "LicenseEditionBusiness"
+            ]
+        },
+        "consts.ModelSettingMode": {
+            "type": "string",
+            "enum": [
+                "manual",
+                "auto"
+            ],
+            "x-enum-varnames": [
+                "ModelSettingModeManual",
+                "ModelSettingModeAuto"
             ]
         },
         "consts.NodeAccessPerm": {
@@ -4240,6 +4238,49 @@ const docTemplate = `{
                 "NodePermNameAnswerable"
             ]
         },
+        "consts.NodeRagInfoStatus": {
+            "type": "string",
+            "enum": [
+                "BASIC_PENDING",
+                "BASIC_RUNNING",
+                "BASIC_FAILED",
+                "BASIC_SUCCEEDED",
+                "ENHANCE_PENDING",
+                "ENHANCE_RUNNING",
+                "ENHANCE_FAILED",
+                "ENHANCE_SUCCEEDED"
+            ],
+            "x-enum-comments": {
+                "NodeRagStatusBasicFailed": "基础处理失败",
+                "NodeRagStatusBasicPending": "等待基础处理",
+                "NodeRagStatusBasicRunning": "正在进行基础处理（文本分割、向量化等）",
+                "NodeRagStatusBasicSucceeded": "基础处理成功",
+                "NodeRagStatusEnhanceFailed": "增强处理失败",
+                "NodeRagStatusEnhancePending": "基础处理完成，等待增强处理",
+                "NodeRagStatusEnhanceRunning": "正在进行增强处理（关键词提取等）",
+                "NodeRagStatusEnhanceSucceeded": "增强处理成功"
+            },
+            "x-enum-descriptions": [
+                "等待基础处理",
+                "正在进行基础处理（文本分割、向量化等）",
+                "基础处理失败",
+                "基础处理成功",
+                "基础处理完成，等待增强处理",
+                "正在进行增强处理（关键词提取等）",
+                "增强处理失败",
+                "增强处理成功"
+            ],
+            "x-enum-varnames": [
+                "NodeRagStatusBasicPending",
+                "NodeRagStatusBasicRunning",
+                "NodeRagStatusBasicFailed",
+                "NodeRagStatusBasicSucceeded",
+                "NodeRagStatusEnhancePending",
+                "NodeRagStatusEnhanceRunning",
+                "NodeRagStatusEnhanceFailed",
+                "NodeRagStatusEnhanceSucceeded"
+            ]
+        },
         "consts.RedeemCaptchaReq": {
             "type": "object",
             "properties": {
@@ -4267,11 +4308,14 @@ const docTemplate = `{
                 "widget",
                 "dingtalk_bot",
                 "feishu_bot",
+                "lark_bot",
                 "wechat_bot",
+                "wecom_ai_bot",
                 "wechat_service_bot",
                 "discord_bot",
                 "wechat_official_account",
-                "openai_api"
+                "openai_api",
+                "mcp_server"
             ],
             "x-enum-varnames": [
                 "SourceTypeDingTalk",
@@ -4284,11 +4328,14 @@ const docTemplate = `{
                 "SourceTypeWidget",
                 "SourceTypeDingtalkBot",
                 "SourceTypeFeishuBot",
+                "SourceTypeLarkBot",
                 "SourceTypeWechatBot",
+                "SourceTypeWecomAIBot",
                 "SourceTypeWechatServiceBot",
                 "SourceTypeDiscordBot",
                 "SourceTypeWechatOfficialAccount",
-                "SourceTypeOpenAIAPI"
+                "SourceTypeOpenAIAPI",
+                "SourceTypeMcpServer"
             ]
         },
         "consts.StatDay": {
@@ -4445,16 +4492,16 @@ const docTemplate = `{
                 }
             }
         },
-        "domain.AnalysisConfluenceResp": {
+        "domain.AnydocUploadResp": {
             "type": "object",
             "properties": {
-                "content": {
+                "code": {
+                    "type": "integer"
+                },
+                "data": {
                     "type": "string"
                 },
-                "id": {
-                    "type": "string"
-                },
-                "title": {
+                "err": {
                     "type": "string"
                 }
             }
@@ -4488,6 +4535,9 @@ const docTemplate = `{
         "domain.AppInfoResp": {
             "type": "object",
             "properties": {
+                "base_url": {
+                    "type": "string"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -4513,9 +4563,6 @@ const docTemplate = `{
                         }
                     ]
                 },
-                "auto_sitemap": {
-                    "type": "boolean"
-                },
                 "body_code": {
                     "type": "string"
                 },
@@ -4533,6 +4580,9 @@ const docTemplate = `{
                 },
                 "contribute_settings": {
                     "$ref": "#/definitions/domain.ContributeSettings"
+                },
+                "conversation_setting": {
+                    "$ref": "#/definitions/domain.ConversationSetting"
                 },
                 "copy_setting": {
                     "enum": [
@@ -4604,11 +4654,30 @@ const docTemplate = `{
                     "description": "inject code",
                     "type": "string"
                 },
+                "home_page_setting": {
+                    "$ref": "#/definitions/consts.HomePageSetting"
+                },
                 "icon": {
                     "type": "string"
                 },
                 "keyword": {
                     "type": "string"
+                },
+                "lark_bot_settings": {
+                    "description": "LarkBot",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.LarkBotSettings"
+                        }
+                    ]
+                },
+                "mcp_server_settings": {
+                    "description": "MCP Server Settings",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.MCPServerSettings"
+                        }
+                    ]
                 },
                 "openai_api_bot_settings": {
                     "description": "OpenAI API Bot settings",
@@ -4632,6 +4701,9 @@ const docTemplate = `{
                 },
                 "search_placeholder": {
                     "type": "string"
+                },
+                "stats_setting": {
+                    "$ref": "#/definitions/domain.StatsSetting"
                 },
                 "theme_and_style": {
                     "$ref": "#/definitions/domain.ThemeAndStyle"
@@ -4675,6 +4747,19 @@ const docTemplate = `{
                         }
                     ]
                 },
+                "web_app_landing_configs": {
+                    "description": "WebAppLandingConfigs",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.WebAppLandingConfig"
+                    }
+                },
+                "web_app_landing_theme": {
+                    "$ref": "#/definitions/domain.WebAppLandingTheme"
+                },
+                "wechat_app_advanced_setting": {
+                    "$ref": "#/definitions/domain.WeChatAppAdvancedSetting"
+                },
                 "wechat_app_agent_id": {
                     "type": "string"
                 },
@@ -4685,7 +4770,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "wechat_app_is_enabled": {
-                    "description": "WechatAppBot",
+                    "description": "WechatAppBot 企业微信机器人",
                     "type": "boolean"
                 },
                 "wechat_app_secret": {
@@ -4710,11 +4795,23 @@ const docTemplate = `{
                 "wechat_official_account_token": {
                     "type": "string"
                 },
+                "wechat_service_contain_keywords": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "wechat_service_corpid": {
                     "type": "string"
                 },
                 "wechat_service_encodingaeskey": {
                     "type": "string"
+                },
+                "wechat_service_equal_keywords": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "wechat_service_is_enabled": {
                     "description": "WechatServiceBot",
@@ -4725,6 +4822,14 @@ const docTemplate = `{
                 },
                 "wechat_service_token": {
                     "type": "string"
+                },
+                "wecom_ai_bot_settings": {
+                    "description": "WecomAIBotSettings 企业微信智能机器人",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.WecomAIBotSettings"
+                        }
+                    ]
                 },
                 "welcome_str": {
                     "description": "welcome",
@@ -4751,9 +4856,6 @@ const docTemplate = `{
                         }
                     ]
                 },
-                "auto_sitemap": {
-                    "type": "boolean"
-                },
                 "body_code": {
                     "type": "string"
                 },
@@ -4771,6 +4873,9 @@ const docTemplate = `{
                 },
                 "contribute_settings": {
                     "$ref": "#/definitions/domain.ContributeSettings"
+                },
+                "conversation_setting": {
+                    "$ref": "#/definitions/domain.ConversationSetting"
                 },
                 "copy_setting": {
                     "$ref": "#/definitions/consts.CopySetting"
@@ -4833,11 +4938,30 @@ const docTemplate = `{
                     "description": "inject code",
                     "type": "string"
                 },
+                "home_page_setting": {
+                    "$ref": "#/definitions/consts.HomePageSetting"
+                },
                 "icon": {
                     "type": "string"
                 },
                 "keyword": {
                     "type": "string"
+                },
+                "lark_bot_settings": {
+                    "description": "LarkBot",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.LarkBotSettings"
+                        }
+                    ]
+                },
+                "mcp_server_settings": {
+                    "description": "MCP Server Settings",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.MCPServerSettings"
+                        }
+                    ]
                 },
                 "openai_api_bot_settings": {
                     "description": "OpenAI API settings",
@@ -4861,6 +4985,9 @@ const docTemplate = `{
                 },
                 "search_placeholder": {
                     "type": "string"
+                },
+                "stats_setting": {
+                    "$ref": "#/definitions/domain.StatsSetting"
                 },
                 "theme_and_style": {
                     "$ref": "#/definitions/domain.ThemeAndStyle"
@@ -4894,6 +5021,19 @@ const docTemplate = `{
                             "$ref": "#/definitions/domain.WebAppCustomSettings"
                         }
                     ]
+                },
+                "web_app_landing_configs": {
+                    "description": "WebApp Landing Settings",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.WebAppLandingConfigResp"
+                    }
+                },
+                "web_app_landing_theme": {
+                    "$ref": "#/definitions/domain.WebAppLandingTheme"
+                },
+                "wechat_app_advanced_setting": {
+                    "$ref": "#/definitions/domain.WeChatAppAdvancedSetting"
                 },
                 "wechat_app_agent_id": {
                     "type": "string"
@@ -4930,11 +5070,23 @@ const docTemplate = `{
                 "wechat_official_account_token": {
                     "type": "string"
                 },
+                "wechat_service_contain_keywords": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "wechat_service_corpid": {
                     "type": "string"
                 },
                 "wechat_service_encodingaeskey": {
                     "type": "string"
+                },
+                "wechat_service_equal_keywords": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "wechat_service_is_enabled": {
                     "description": "WechatServiceBot",
@@ -4945,6 +5097,9 @@ const docTemplate = `{
                 },
                 "wechat_service_token": {
                     "type": "string"
+                },
+                "wecom_ai_bot_settings": {
+                    "$ref": "#/definitions/domain.WecomAIBotSettings"
                 },
                 "welcome_str": {
                     "description": "welcome",
@@ -4972,7 +5127,10 @@ const docTemplate = `{
                 6,
                 7,
                 8,
-                9
+                9,
+                10,
+                11,
+                12
             ],
             "x-enum-varnames": [
                 "AppTypeWeb",
@@ -4983,7 +5141,10 @@ const docTemplate = `{
                 "AppTypeWechatServiceBot",
                 "AppTypeDisCordBot",
                 "AppTypeWechatOfficialAccount",
-                "AppTypeOpenAIAPI"
+                "AppTypeOpenAIAPI",
+                "AppTypeWecomAIBot",
+                "AppTypeLarkBot",
+                "AppTypeMcpServer"
             ]
         },
         "domain.AuthUserInfo": {
@@ -4996,6 +5157,75 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.BannerConfig": {
+            "type": "object",
+            "properties": {
+                "bg_url": {
+                    "type": "string"
+                },
+                "btns": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "href": {
+                                "type": "string"
+                            },
+                            "id": {
+                                "type": "string"
+                            },
+                            "text": {
+                                "type": "string"
+                            },
+                            "type": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "hot_search": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "placeholder": {
+                    "type": "string"
+                },
+                "subtitle": {
+                    "type": "string"
+                },
+                "subtitle_color": {
+                    "type": "string"
+                },
+                "subtitle_font_size": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "title_color": {
+                    "type": "string"
+                },
+                "title_font_size": {
+                    "type": "integer"
+                }
+            }
+        },
+        "domain.BasicDocConfig": {
+            "type": "object",
+            "properties": {
+                "bg_color": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "title_color": {
                     "type": "string"
                 }
             }
@@ -5021,6 +5251,34 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.BlockGridConfig": {
+            "type": "object",
+            "properties": {
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "url": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
         "domain.BrandGroup": {
             "type": "object",
             "properties": {
@@ -5042,6 +5300,65 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.CarouselConfig": {
+            "type": "object",
+            "properties": {
+                "bg_color": {
+                    "type": "string"
+                },
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "desc": {
+                                "type": "string"
+                            },
+                            "id": {
+                                "type": "string"
+                            },
+                            "title": {
+                                "type": "string"
+                            },
+                            "url": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.CaseConfig": {
+            "type": "object",
+            "properties": {
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "link": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }
@@ -5091,6 +5408,65 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "nonce": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.ChatSearchReq": {
+            "type": "object",
+            "required": [
+                "message"
+            ],
+            "properties": {
+                "captcha_token": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.ChatSearchResp": {
+            "type": "object",
+            "properties": {
+                "node_result": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.NodeContentChunkSSE"
+                    }
+                }
+            }
+        },
+        "domain.CommentConfig": {
+            "type": "object",
+            "properties": {
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "avatar": {
+                                "type": "string"
+                            },
+                            "comment": {
+                                "type": "string"
+                            },
+                            "id": {
+                                "type": "string"
+                            },
+                            "profession": {
+                                "type": "string"
+                            },
+                            "user_name": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }
@@ -5166,7 +5542,8 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "content",
-                "node_id"
+                "node_id",
+                "pic_urls"
             ],
             "properties": {
                 "captcha_token": {
@@ -5180,6 +5557,12 @@ const docTemplate = `{
                 },
                 "parent_id": {
                     "type": "string"
+                },
+                "pic_urls": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "root_id": {
                     "type": "string"
@@ -5202,6 +5585,18 @@ const docTemplate = `{
                 "CommentStatusPending",
                 "CommentStatusAccepted"
             ]
+        },
+        "domain.CompleteReq": {
+            "type": "object",
+            "properties": {
+                "prefix": {
+                    "description": "For FIM (Fill in Middle) style completion",
+                    "type": "string"
+                },
+                "suffix": {
+                    "type": "string"
+                }
+            }
         },
         "domain.ContributeSettings": {
             "type": "object",
@@ -5243,20 +5638,6 @@ const docTemplate = `{
                 },
                 "subject": {
                     "type": "string"
-                }
-            }
-        },
-        "domain.ConversationDistribution": {
-            "type": "object",
-            "properties": {
-                "app_id": {
-                    "type": "string"
-                },
-                "app_type": {
-                    "$ref": "#/definitions/domain.AppType"
-                },
-                "count": {
-                    "type": "integer"
                 }
             }
         },
@@ -5438,6 +5819,17 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.ConversationSetting": {
+            "type": "object",
+            "properties": {
+                "copyright_hide_enabled": {
+                    "type": "boolean"
+                },
+                "copyright_info": {
+                    "type": "string"
+                }
+            }
+        },
         "domain.CreateKBReleaseReq": {
             "type": "object",
             "required": [
@@ -5525,7 +5917,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "parameters": {
-                    "$ref": "#/definitions/domain.ModelParam"
+                    "$ref": "#/definitions/github_com_chaitin_panda-wiki_domain.ModelParam"
                 },
                 "provider": {
                     "$ref": "#/definitions/github_com_chaitin_panda-wiki_domain.ModelProvider"
@@ -5535,7 +5927,8 @@ const docTemplate = `{
                         "chat",
                         "embedding",
                         "rerank",
-                        "analysis"
+                        "analysis",
+                        "analysis-vl"
                     ],
                     "allOf": [
                         {
@@ -5556,6 +5949,9 @@ const docTemplate = `{
                 "content": {
                     "type": "string"
                 },
+                "content_type": {
+                    "type": "string"
+                },
                 "emoji": {
                     "type": "string"
                 },
@@ -5571,6 +5967,9 @@ const docTemplate = `{
                 "position": {
                     "type": "number"
                 },
+                "summary": {
+                    "type": "string"
+                },
                 "type": {
                     "enum": [
                         1,
@@ -5581,6 +5980,20 @@ const docTemplate = `{
                             "$ref": "#/definitions/domain.NodeType"
                         }
                     ]
+                }
+            }
+        },
+        "domain.DirDocConfig": {
+            "type": "object",
+            "properties": {
+                "bg_color": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "title_color": {
+                    "type": "string"
                 }
             }
         },
@@ -5600,13 +6013,61 @@ const docTemplate = `{
                 }
             }
         },
-        "domain.EpubResp": {
+        "domain.FaqConfig": {
             "type": "object",
             "properties": {
-                "content": {
+                "bg_color": {
                     "type": "string"
                 },
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "link": {
+                                "type": "string"
+                            },
+                            "question": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
                 "title": {
+                    "type": "string"
+                },
+                "title_color": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.FeatureConfig": {
+            "type": "object",
+            "properties": {
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "desc": {
+                                "type": "string"
+                            },
+                            "id": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }
@@ -5685,64 +6146,6 @@ const docTemplate = `{
                 }
             }
         },
-        "domain.GetDocsReq": {
-            "type": "object",
-            "required": [
-                "kb_id"
-            ],
-            "properties": {
-                "integration": {
-                    "type": "string"
-                },
-                "kb_id": {
-                    "type": "string"
-                },
-                "pages": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/domain.PageInfo"
-                    }
-                }
-            }
-        },
-        "domain.GetDocxReq": {
-            "type": "object",
-            "required": [
-                "kb_id",
-                "sources"
-            ],
-            "properties": {
-                "app_id": {
-                    "type": "string"
-                },
-                "app_secret": {
-                    "type": "string"
-                },
-                "kb_id": {
-                    "type": "string"
-                },
-                "sources": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/domain.Source"
-                    }
-                },
-                "user_access_token": {
-                    "type": "string"
-                }
-            }
-        },
-        "domain.GetDocxResp": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
         "domain.GetKBReleaseListResp": {
             "type": "object",
             "properties": {
@@ -5782,7 +6185,8 @@ const docTemplate = `{
                         "chat",
                         "embedding",
                         "rerank",
-                        "analysis"
+                        "analysis",
+                        "analysis-vl"
                     ],
                     "allOf": [
                         {
@@ -5800,31 +6204,6 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/domain.ProviderModelListItem"
                     }
-                }
-            }
-        },
-        "domain.GetSpaceListReq": {
-            "type": "object",
-            "properties": {
-                "app_id": {
-                    "type": "string"
-                },
-                "app_secret": {
-                    "type": "string"
-                },
-                "user_access_token": {
-                    "type": "string"
-                }
-            }
-        },
-        "domain.GetSpaceListResp": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "space_id": {
-                    "type": "string"
                 }
             }
         },
@@ -5886,6 +6265,31 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "province": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.ImgTextConfig": {
+            "type": "object",
+            "properties": {
+                "item": {
+                    "type": "object",
+                    "properties": {
+                        "desc": {
+                            "type": "string"
+                        },
+                        "name": {
+                            "type": "string"
+                        },
+                        "url": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }
@@ -6004,6 +6408,26 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.LarkBotSettings": {
+            "type": "object",
+            "properties": {
+                "app_id": {
+                    "type": "string"
+                },
+                "app_secret": {
+                    "type": "string"
+                },
+                "encrypt_key": {
+                    "type": "string"
+                },
+                "is_enabled": {
+                    "type": "boolean"
+                },
+                "verify_token": {
+                    "type": "string"
+                }
+            }
+        },
         "domain.Link": {
             "type": "object",
             "properties": {
@@ -6014,6 +6438,34 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "domain.MCPServerSettings": {
+            "type": "object",
+            "properties": {
+                "docs_tool_settings": {
+                    "$ref": "#/definitions/domain.MCPToolSettings"
+                },
+                "is_enabled": {
+                    "type": "boolean"
+                },
+                "sample_auth": {
+                    "$ref": "#/definitions/domain.SimpleAuth"
+                }
+            }
+        },
+        "domain.MCPToolSettings": {
+            "type": "object",
+            "properties": {
+                "desc": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.MessageContent": {
+            "type": "object"
         },
         "domain.MessageFrom": {
             "type": "integer",
@@ -6026,26 +6478,56 @@ const docTemplate = `{
                 "MessageFromPrivate"
             ]
         },
-        "domain.ModelParam": {
+        "domain.MetricsConfig": {
             "type": "object",
             "properties": {
-                "context_window": {
-                    "type": "integer"
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "name": {
+                                "type": "string"
+                            },
+                            "number": {
+                                "type": "string"
+                            }
+                        }
+                    }
                 },
-                "max_tokens": {
-                    "type": "integer"
+                "title": {
+                    "type": "string"
                 },
-                "r1_enabled": {
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.ModelModeSetting": {
+            "type": "object",
+            "properties": {
+                "auto_mode_api_key": {
+                    "description": "百智云 API Key",
+                    "type": "string"
+                },
+                "chat_model": {
+                    "description": "自定义对话模型名称",
+                    "type": "string"
+                },
+                "is_manual_embedding_updated": {
+                    "description": "手动模式下嵌入模型是否更新",
                     "type": "boolean"
                 },
-                "support_computer_use": {
-                    "type": "boolean"
-                },
-                "support_images": {
-                    "type": "boolean"
-                },
-                "support_prompt_cache": {
-                    "type": "boolean"
+                "mode": {
+                    "description": "模式: manual 或 auto",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/consts.ModelSettingMode"
+                        }
+                    ]
                 }
             }
         },
@@ -6055,13 +6537,15 @@ const docTemplate = `{
                 "chat",
                 "embedding",
                 "rerank",
-                "analysis"
+                "analysis",
+                "analysis-vl"
             ],
             "x-enum-varnames": [
                 "ModelTypeChat",
                 "ModelTypeEmbedding",
                 "ModelTypeRerank",
-                "ModelTypeAnalysis"
+                "ModelTypeAnalysis",
+                "ModelTypeAnalysisVL"
             ]
         },
         "domain.MoveNodeReq": {
@@ -6113,6 +6597,29 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.NodeContentChunkSSE": {
+            "type": "object",
+            "properties": {
+                "emoji": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "node_id": {
+                    "type": "string"
+                },
+                "node_path_names": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "summary": {
+                    "type": "string"
+                }
+            }
+        },
         "domain.NodeGroupDetail": {
             "type": "object",
             "properties": {
@@ -6142,6 +6649,9 @@ const docTemplate = `{
         "domain.NodeListItemResp": {
             "type": "object",
             "properties": {
+                "content_type": {
+                    "type": "string"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -6175,6 +6685,12 @@ const docTemplate = `{
                 "position": {
                     "type": "number"
                 },
+                "publisher_id": {
+                    "type": "string"
+                },
+                "rag_info": {
+                    "$ref": "#/definitions/domain.RagInfo"
+                },
                 "status": {
                     "$ref": "#/definitions/domain.NodeStatus"
                 },
@@ -6192,6 +6708,9 @@ const docTemplate = `{
         "domain.NodeMeta": {
             "type": "object",
             "properties": {
+                "content_type": {
+                    "type": "string"
+                },
                 "emoji": {
                     "type": "string"
                 },
@@ -6271,20 +6790,12 @@ const docTemplate = `{
                 "NodeTypeDocument"
             ]
         },
-        "domain.NotnionGetListReq": {
-            "type": "object",
-            "properties": {
-                "cation_title": {
-                    "type": "string"
-                },
-                "integration": {
-                    "type": "string"
-                }
-            }
-        },
         "domain.ObjectUploadResp": {
             "type": "object",
             "properties": {
+                "filename": {
+                    "type": "string"
+                },
                 "key": {
                     "type": "string"
                 }
@@ -6359,6 +6870,9 @@ const docTemplate = `{
                 },
                 "stream": {
                     "type": "boolean"
+                },
+                "stream_options": {
+                    "$ref": "#/definitions/domain.OpenAIStreamOptions"
                 },
                 "temperature": {
                     "type": "number"
@@ -6482,7 +6996,7 @@ const docTemplate = `{
             ],
             "properties": {
                 "content": {
-                    "type": "string"
+                    "$ref": "#/definitions/domain.MessageContent"
                 },
                 "name": {
                     "type": "string"
@@ -6509,6 +7023,14 @@ const docTemplate = `{
             "properties": {
                 "type": {
                     "type": "string"
+                }
+            }
+        },
+        "domain.OpenAIStreamOptions": {
+            "type": "object",
+            "properties": {
+                "include_usage": {
+                    "type": "boolean"
                 }
             }
         },
@@ -6585,34 +7107,6 @@ const docTemplate = `{
                 }
             }
         },
-        "domain.Page": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "parent_id": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
-        "domain.PageInfo": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
         "domain.PaginatedResult-array_domain_ConversationMessageListItem": {
             "type": "object",
             "properties": {
@@ -6627,50 +7121,47 @@ const docTemplate = `{
                 }
             }
         },
-        "domain.ParseURLItem": {
-            "type": "object",
-            "properties": {
-                "desc": {
-                    "type": "string"
-                },
-                "published": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "domain.ParseURLReq": {
-            "type": "object",
-            "required": [
-                "url"
-            ],
-            "properties": {
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "domain.ParseURLResp": {
-            "type": "object",
-            "properties": {
-                "items": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/domain.ParseURLItem"
-                    }
-                }
-            }
-        },
         "domain.ProviderModelListItem": {
             "type": "object",
             "properties": {
                 "model": {
                     "type": "string"
+                }
+            }
+        },
+        "domain.QuestionConfig": {
+            "type": "object",
+            "properties": {
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string"
+                            },
+                            "question": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.RagInfo": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/consts.NodeRagInfoStatus"
                 }
             }
         },
@@ -6732,102 +7223,6 @@ const docTemplate = `{
                 "DisLike"
             ]
         },
-        "domain.ScrapeReq": {
-            "type": "object",
-            "required": [
-                "kb_id"
-            ],
-            "properties": {
-                "kb_id": {
-                    "type": "string"
-                },
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "domain.ScrapeResp": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
-        "domain.SearchDocxReq": {
-            "type": "object",
-            "properties": {
-                "app_id": {
-                    "type": "string"
-                },
-                "app_secret": {
-                    "type": "string"
-                },
-                "user_access_token": {
-                    "type": "string"
-                }
-            }
-        },
-        "domain.SearchDocxResp": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "obj_token": {
-                    "type": "string"
-                },
-                "obj_type": {
-                    "type": "integer"
-                },
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "domain.SearchWikiReq": {
-            "type": "object",
-            "properties": {
-                "app_id": {
-                    "type": "string"
-                },
-                "app_secret": {
-                    "type": "string"
-                },
-                "query": {
-                    "type": "string"
-                },
-                "space_id": {
-                    "type": "string"
-                },
-                "user_access_token": {
-                    "type": "string"
-                }
-            }
-        },
-        "domain.SearchWikiResp": {
-            "type": "object",
-            "properties": {
-                "obj_token": {
-                    "type": "string"
-                },
-                "obj_type": {
-                    "type": "integer"
-                },
-                "space_id": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
         "domain.ShareCommentListItem": {
             "type": "object",
             "properties": {
@@ -6859,6 +7254,12 @@ const docTemplate = `{
                 },
                 "parent_id": {
                     "type": "string"
+                },
+                "pic_urls": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "root_id": {
                     "type": "string"
@@ -6899,16 +7300,40 @@ const docTemplate = `{
                 }
             }
         },
-        "domain.SiYuanResp": {
+        "domain.ShareNodeDetailItem": {
             "type": "object",
             "properties": {
-                "content": {
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.ShareNodeDetailItem"
+                    }
+                },
+                "emoji": {
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "string"
                 },
-                "title": {
+                "meta": {
+                    "$ref": "#/definitions/domain.NodeMeta"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "parent_id": {
+                    "type": "string"
+                },
+                "permissions": {
+                    "$ref": "#/definitions/domain.NodePermissions"
+                },
+                "position": {
+                    "type": "number"
+                },
+                "type": {
+                    "$ref": "#/definitions/domain.NodeType"
+                },
+                "updated_at": {
                     "type": "string"
                 }
             }
@@ -6920,6 +7345,20 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.SimpleDocConfig": {
+            "type": "object",
+            "properties": {
+                "bg_color": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                },
+                "title_color": {
                     "type": "string"
                 }
             }
@@ -6940,20 +7379,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "text": {
-                    "type": "string"
-                }
-            }
-        },
-        "domain.Source": {
-            "type": "object",
-            "properties": {
-                "obj_token": {
-                    "type": "string"
-                },
-                "obj_type": {
-                    "type": "integer"
-                },
-                "url": {
                     "type": "string"
                 }
             }
@@ -6996,6 +7421,81 @@ const docTemplate = `{
                 "StatPageSceneChat",
                 "StatPageSceneLogin"
             ]
+        },
+        "domain.StatsSetting": {
+            "type": "object",
+            "properties": {
+                "pv_enable": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "domain.SwitchModeReq": {
+            "type": "object",
+            "required": [
+                "mode"
+            ],
+            "properties": {
+                "auto_mode_api_key": {
+                    "description": "百智云 API Key",
+                    "type": "string"
+                },
+                "chat_model": {
+                    "description": "自定义对话模型名称",
+                    "type": "string"
+                },
+                "mode": {
+                    "type": "string",
+                    "enum": [
+                        "manual",
+                        "auto"
+                    ]
+                }
+            }
+        },
+        "domain.SwitchModeResp": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.TextConfig": {
+            "type": "object",
+            "properties": {
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.TextImgConfig": {
+            "type": "object",
+            "properties": {
+                "item": {
+                    "type": "object",
+                    "properties": {
+                        "desc": {
+                            "type": "string"
+                        },
+                        "name": {
+                            "type": "string"
+                        },
+                        "url": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "title": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
         },
         "domain.TextReq": {
             "type": "object",
@@ -7087,7 +7587,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "parameters": {
-                    "$ref": "#/definitions/domain.ModelParam"
+                    "$ref": "#/definitions/github_com_chaitin_panda-wiki_domain.ModelParam"
                 },
                 "provider": {
                     "$ref": "#/definitions/github_com_chaitin_panda-wiki_domain.ModelProvider"
@@ -7097,7 +7597,8 @@ const docTemplate = `{
                         "chat",
                         "embedding",
                         "rerank",
-                        "analysis"
+                        "analysis",
+                        "analysis-vl"
                     ],
                     "allOf": [
                         {
@@ -7115,6 +7616,9 @@ const docTemplate = `{
             ],
             "properties": {
                 "content": {
+                    "type": "string"
+                },
+                "content_type": {
                     "type": "string"
                 },
                 "emoji": {
@@ -7164,6 +7668,29 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.WeChatAppAdvancedSetting": {
+            "type": "object",
+            "properties": {
+                "disclaimer_content": {
+                    "type": "string"
+                },
+                "feedback_enable": {
+                    "type": "boolean"
+                },
+                "feedback_type": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "prompt": {
+                    "type": "string"
+                },
+                "text_response_enable": {
+                    "type": "boolean"
+                }
+            }
+        },
         "domain.WebAppCommentSettings": {
             "type": "object",
             "properties": {
@@ -7198,44 +7725,216 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.WebAppLandingConfig": {
+            "type": "object",
+            "properties": {
+                "banner_config": {
+                    "$ref": "#/definitions/domain.BannerConfig"
+                },
+                "basic_doc_config": {
+                    "$ref": "#/definitions/domain.BasicDocConfig"
+                },
+                "block_grid_config": {
+                    "$ref": "#/definitions/domain.BlockGridConfig"
+                },
+                "carousel_config": {
+                    "$ref": "#/definitions/domain.CarouselConfig"
+                },
+                "case_config": {
+                    "$ref": "#/definitions/domain.CaseConfig"
+                },
+                "com_config_order": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "comment_config": {
+                    "$ref": "#/definitions/domain.CommentConfig"
+                },
+                "dir_doc_config": {
+                    "$ref": "#/definitions/domain.DirDocConfig"
+                },
+                "faq_config": {
+                    "$ref": "#/definitions/domain.FaqConfig"
+                },
+                "feature_config": {
+                    "$ref": "#/definitions/domain.FeatureConfig"
+                },
+                "img_text_config": {
+                    "$ref": "#/definitions/domain.ImgTextConfig"
+                },
+                "metrics_config": {
+                    "$ref": "#/definitions/domain.MetricsConfig"
+                },
+                "node_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "question_config": {
+                    "$ref": "#/definitions/domain.QuestionConfig"
+                },
+                "simple_doc_config": {
+                    "$ref": "#/definitions/domain.SimpleDocConfig"
+                },
+                "text_config": {
+                    "$ref": "#/definitions/domain.TextConfig"
+                },
+                "text_img_config": {
+                    "$ref": "#/definitions/domain.TextImgConfig"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.WebAppLandingConfigResp": {
+            "type": "object",
+            "properties": {
+                "banner_config": {
+                    "$ref": "#/definitions/domain.BannerConfig"
+                },
+                "basic_doc_config": {
+                    "$ref": "#/definitions/domain.BasicDocConfig"
+                },
+                "block_grid_config": {
+                    "$ref": "#/definitions/domain.BlockGridConfig"
+                },
+                "carousel_config": {
+                    "$ref": "#/definitions/domain.CarouselConfig"
+                },
+                "case_config": {
+                    "$ref": "#/definitions/domain.CaseConfig"
+                },
+                "com_config_order": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "comment_config": {
+                    "$ref": "#/definitions/domain.CommentConfig"
+                },
+                "dir_doc_config": {
+                    "$ref": "#/definitions/domain.DirDocConfig"
+                },
+                "faq_config": {
+                    "$ref": "#/definitions/domain.FaqConfig"
+                },
+                "feature_config": {
+                    "$ref": "#/definitions/domain.FeatureConfig"
+                },
+                "img_text_config": {
+                    "$ref": "#/definitions/domain.ImgTextConfig"
+                },
+                "metrics_config": {
+                    "$ref": "#/definitions/domain.MetricsConfig"
+                },
+                "node_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "nodes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.RecommendNodeListResp"
+                    }
+                },
+                "question_config": {
+                    "$ref": "#/definitions/domain.QuestionConfig"
+                },
+                "simple_doc_config": {
+                    "$ref": "#/definitions/domain.SimpleDocConfig"
+                },
+                "text_config": {
+                    "$ref": "#/definitions/domain.TextConfig"
+                },
+                "text_img_config": {
+                    "$ref": "#/definitions/domain.TextImgConfig"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.WebAppLandingTheme": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.WecomAIBotSettings": {
+            "type": "object",
+            "properties": {
+                "encodingaeskey": {
+                    "type": "string"
+                },
+                "is_enabled": {
+                    "type": "boolean"
+                },
+                "token": {
+                    "type": "string"
+                }
+            }
+        },
         "domain.WidgetBotSettings": {
             "type": "object",
             "properties": {
+                "btn_id": {
+                    "type": "string"
+                },
                 "btn_logo": {
+                    "type": "string"
+                },
+                "btn_position": {
+                    "type": "string"
+                },
+                "btn_style": {
                     "type": "string"
                 },
                 "btn_text": {
                     "type": "string"
                 },
+                "copyright_hide_enabled": {
+                    "type": "boolean"
+                },
+                "copyright_info": {
+                    "type": "string"
+                },
+                "disclaimer": {
+                    "type": "string"
+                },
                 "is_open": {
                     "type": "boolean"
                 },
+                "modal_position": {
+                    "type": "string"
+                },
+                "placeholder": {
+                    "type": "string"
+                },
+                "recommend_node_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "recommend_questions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "search_mode": {
+                    "type": "string"
+                },
                 "theme_mode": {
-                    "type": "string"
-                }
-            }
-        },
-        "domain.WikiJSResp": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
-        "domain.YuqueResp": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string"
-                },
-                "title": {
                     "type": "string"
                 }
             }
@@ -7305,6 +8004,9 @@ const docTemplate = `{
                 "model": {
                     "type": "string"
                 },
+                "parameters": {
+                    "$ref": "#/definitions/github_com_chaitin_panda-wiki_domain.ModelParam"
+                },
                 "provider": {
                     "$ref": "#/definitions/github_com_chaitin_panda-wiki_domain.ModelProvider"
                 },
@@ -7313,7 +8015,8 @@ const docTemplate = `{
                         "chat",
                         "embedding",
                         "rerank",
-                        "analysis"
+                        "analysis",
+                        "analysis-vl"
                     ],
                     "allOf": [
                         {
@@ -7363,7 +8066,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "parameters": {
-                    "$ref": "#/definitions/domain.ModelParam"
+                    "$ref": "#/definitions/github_com_chaitin_panda-wiki_domain.ModelParam"
                 },
                 "prompt_tokens": {
                     "type": "integer"
@@ -7376,6 +8079,32 @@ const docTemplate = `{
                 },
                 "type": {
                     "$ref": "#/definitions/domain.ModelType"
+                }
+            }
+        },
+        "github_com_chaitin_panda-wiki_domain.ModelParam": {
+            "type": "object",
+            "properties": {
+                "context_window": {
+                    "type": "integer"
+                },
+                "max_tokens": {
+                    "type": "integer"
+                },
+                "r1_enabled": {
+                    "type": "boolean"
+                },
+                "support_computer_use": {
+                    "type": "boolean"
+                },
+                "support_images": {
+                    "type": "boolean"
+                },
+                "support_prompt_cache": {
+                    "type": "boolean"
+                },
+                "temperature": {
+                    "type": "number"
                 }
             }
         },
@@ -7583,6 +8312,141 @@ const docTemplate = `{
                 }
             }
         },
+        "v1.CrawlerExportReq": {
+            "type": "object",
+            "required": [
+                "doc_id",
+                "id",
+                "kb_id"
+            ],
+            "properties": {
+                "doc_id": {
+                    "type": "string"
+                },
+                "file_type": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "kb_id": {
+                    "type": "string"
+                },
+                "space_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.CrawlerExportResp": {
+            "type": "object",
+            "properties": {
+                "task_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.CrawlerParseReq": {
+            "type": "object",
+            "required": [
+                "crawler_source",
+                "kb_id"
+            ],
+            "properties": {
+                "crawler_source": {
+                    "$ref": "#/definitions/consts.CrawlerSource"
+                },
+                "feishu_setting": {
+                    "$ref": "#/definitions/v1.FeishuSetting"
+                },
+                "filename": {
+                    "type": "string"
+                },
+                "kb_id": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.CrawlerParseResp": {
+            "type": "object",
+            "properties": {
+                "docs": {
+                    "$ref": "#/definitions/anydoc.Child"
+                },
+                "id": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.CrawlerResultItem": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/consts.CrawlerStatus"
+                },
+                "task_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.CrawlerResultReq": {
+            "type": "object",
+            "required": [
+                "task_id"
+            ],
+            "properties": {
+                "task_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.CrawlerResultResp": {
+            "type": "object",
+            "required": [
+                "status"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/consts.CrawlerStatus"
+                }
+            }
+        },
+        "v1.CrawlerResultsReq": {
+            "type": "object",
+            "required": [
+                "task_ids"
+            ],
+            "properties": {
+                "task_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "v1.CrawlerResultsResp": {
+            "type": "object",
+            "properties": {
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/v1.CrawlerResultItem"
+                    }
+                },
+                "status": {
+                    "$ref": "#/definitions/consts.CrawlerStatus"
+                }
+            }
+        },
         "v1.CreateUserReq": {
             "type": "object",
             "required": [
@@ -7619,13 +8483,27 @@ const docTemplate = `{
                 }
             }
         },
-        "v1.DeleteUserReq": {
+        "v1.FeishuSetting": {
             "type": "object",
-            "required": [
-                "user_id"
-            ],
             "properties": {
-                "user_id": {
+                "app_id": {
+                    "type": "string"
+                },
+                "app_secret": {
+                    "type": "string"
+                },
+                "space_id": {
+                    "type": "string"
+                },
+                "user_access_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.FileUploadResp": {
+            "type": "object",
+            "properties": {
+                "key": {
                     "type": "string"
                 }
             }
@@ -7735,6 +8613,18 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "creator_account": {
+                    "type": "string"
+                },
+                "creator_id": {
+                    "type": "string"
+                },
+                "editor_account": {
+                    "type": "string"
+                },
+                "editor_id": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
@@ -7752,6 +8642,15 @@ const docTemplate = `{
                 },
                 "permissions": {
                     "$ref": "#/definitions/domain.NodePermissions"
+                },
+                "publisher_account": {
+                    "type": "string"
+                },
+                "publisher_id": {
+                    "type": "string"
+                },
+                "pv": {
+                    "type": "integer"
                 },
                 "status": {
                     "$ref": "#/definitions/domain.NodeStatus"
@@ -7841,37 +8740,27 @@ const docTemplate = `{
                 }
             }
         },
-        "v1.RecommendNodeListItem": {
+        "v1.NodeRestudyReq": {
             "type": "object",
+            "required": [
+                "kb_id",
+                "node_ids"
+            ],
             "properties": {
-                "emoji": {
+                "kb_id": {
                     "type": "string"
                 },
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "parent_id": {
-                    "type": "string"
-                },
-                "position": {
-                    "type": "number"
-                },
-                "recommend_nodes": {
+                "node_ids": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
-                        "$ref": "#/definitions/domain.RecommendNodeListResp"
+                        "type": "string"
                     }
-                },
-                "summary": {
-                    "type": "string"
-                },
-                "type": {
-                    "$ref": "#/definitions/domain.NodeType"
                 }
             }
+        },
+        "v1.NodeRestudyResp": {
+            "type": "object"
         },
         "v1.ResetPasswordReq": {
             "type": "object",
@@ -7886,6 +8775,82 @@ const docTemplate = `{
                 "new_password": {
                     "type": "string",
                     "minLength": 8
+                }
+            }
+        },
+        "v1.ShareNodeDetailResp": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "creator_account": {
+                    "type": "string"
+                },
+                "creator_id": {
+                    "type": "string"
+                },
+                "editor_account": {
+                    "type": "string"
+                },
+                "editor_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "kb_id": {
+                    "type": "string"
+                },
+                "list": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.ShareNodeDetailItem"
+                    }
+                },
+                "meta": {
+                    "$ref": "#/definitions/domain.NodeMeta"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "parent_id": {
+                    "type": "string"
+                },
+                "permissions": {
+                    "$ref": "#/definitions/domain.NodePermissions"
+                },
+                "publisher_account": {
+                    "type": "string"
+                },
+                "publisher_id": {
+                    "type": "string"
+                },
+                "pv": {
+                    "type": "integer"
+                },
+                "status": {
+                    "$ref": "#/definitions/domain.NodeStatus"
+                },
+                "type": {
+                    "$ref": "#/definitions/domain.NodeType"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.StatConversationDistributionResp": {
+            "type": "object",
+            "properties": {
+                "app_type": {
+                    "$ref": "#/definitions/domain.AppType"
+                },
+                "count": {
+                    "type": "integer"
                 }
             }
         },
@@ -7917,6 +8882,9 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "string"
+                },
+                "is_token": {
+                    "type": "boolean"
                 },
                 "last_access": {
                     "type": "string"
@@ -7954,6 +8922,26 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/v1.UserListItemResp"
                     }
+                }
+            }
+        },
+        "v1.WechatAppInfoResp": {
+            "type": "object",
+            "properties": {
+                "disclaimer_content": {
+                    "type": "string"
+                },
+                "feedback_enable": {
+                    "type": "boolean"
+                },
+                "feedback_type": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "wechat_app_is_enabled": {
+                    "type": "boolean"
                 }
             }
         }

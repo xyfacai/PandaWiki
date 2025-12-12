@@ -8,16 +8,18 @@ package main
 
 import (
 	"github.com/chaitin/panda-wiki/config"
-	mq2 "github.com/chaitin/panda-wiki/handler/mq"
+	mq3 "github.com/chaitin/panda-wiki/handler/mq"
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/mq"
 	cache2 "github.com/chaitin/panda-wiki/repo/cache"
 	ipdb2 "github.com/chaitin/panda-wiki/repo/ipdb"
+	mq2 "github.com/chaitin/panda-wiki/repo/mq"
 	pg2 "github.com/chaitin/panda-wiki/repo/pg"
 	"github.com/chaitin/panda-wiki/store/cache"
 	"github.com/chaitin/panda-wiki/store/ipdb"
 	"github.com/chaitin/panda-wiki/store/pg"
 	"github.com/chaitin/panda-wiki/store/rag"
+	"github.com/chaitin/panda-wiki/store/s3"
 	"github.com/chaitin/panda-wiki/usecase"
 )
 
@@ -47,7 +49,18 @@ func createApp() (*App, error) {
 	modelRepository := pg2.NewModelRepository(db, logger)
 	promptRepo := pg2.NewPromptRepo(db, logger)
 	llmUsecase := usecase.NewLLMUsecase(configConfig, ragService, conversationRepository, knowledgeBaseRepository, nodeRepository, modelRepository, promptRepo, logger)
-	ragmqHandler, err := mq2.NewRAGMQHandler(mqConsumer, logger, ragService, nodeRepository, knowledgeBaseRepository, llmUsecase, modelRepository)
+	mqProducer, err := mq.NewMQProducer(configConfig, logger)
+	if err != nil {
+		return nil, err
+	}
+	ragRepository := mq2.NewRAGRepository(mqProducer)
+	systemSettingRepo := pg2.NewSystemSettingRepo(db, logger)
+	modelUsecase := usecase.NewModelUsecase(modelRepository, nodeRepository, ragRepository, ragService, logger, configConfig, knowledgeBaseRepository, systemSettingRepo)
+	ragmqHandler, err := mq3.NewRAGMQHandler(mqConsumer, logger, ragService, nodeRepository, knowledgeBaseRepository, llmUsecase, modelUsecase)
+	if err != nil {
+		return nil, err
+	}
+	ragDocUpdateHandler, err := mq3.NewRagDocUpdateHandler(mqConsumer, logger, nodeRepository)
 	if err != nil {
 		return nil, err
 	}
@@ -65,19 +78,26 @@ func createApp() (*App, error) {
 	geoRepo := cache2.NewGeoCache(cacheCache, db, logger)
 	authRepo := pg2.NewAuthRepo(db, logger, cacheCache)
 	statUseCase := usecase.NewStatUseCase(statRepository, nodeRepository, conversationRepository, appRepository, ipAddressRepo, geoRepo, authRepo, knowledgeBaseRepository, logger)
-	statCronHandler, err := mq2.NewStatCronHandler(logger, statRepository, statUseCase)
+	userRepository := pg2.NewUserRepository(db, logger)
+	minioClient, err := s3.NewMinioClient(configConfig)
 	if err != nil {
 		return nil, err
 	}
-	mqHandlers := &mq2.MQHandlers{
-		RAGMQHandler:    ragmqHandler,
-		StatCronHandler: statCronHandler,
+	nodeUsecase := usecase.NewNodeUsecase(nodeRepository, appRepository, ragRepository, userRepository, knowledgeBaseRepository, llmUsecase, ragService, logger, minioClient, modelRepository, authRepo, modelUsecase)
+	cronHandler, err := mq3.NewStatCronHandler(logger, statRepository, statUseCase, nodeUsecase)
+	if err != nil {
+		return nil, err
+	}
+	mqHandlers := &mq3.MQHandlers{
+		RAGMQHandler:        ragmqHandler,
+		RagDocUpdateHandler: ragDocUpdateHandler,
+		StatCronHandler:     cronHandler,
 	}
 	app := &App{
 		MQConsumer:      mqConsumer,
 		Config:          configConfig,
 		MQHandlers:      mqHandlers,
-		StatCronHandler: statCronHandler,
+		StatCronHandler: cronHandler,
 	}
 	return app, nil
 }
@@ -87,6 +107,6 @@ func createApp() (*App, error) {
 type App struct {
 	MQConsumer      mq.MQConsumer
 	Config          *config.Config
-	MQHandlers      *mq2.MQHandlers
-	StatCronHandler *mq2.StatCronHandler
+	MQHandlers      *mq3.MQHandlers
+	StatCronHandler *mq3.CronHandler
 }

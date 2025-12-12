@@ -1,25 +1,25 @@
-import { useAppSelector } from '@/store';
-import InfoIcon from '@mui/icons-material/Info';
 import {
   DomainAppDetailResp,
   DomainKnowledgeBaseDetail,
 } from '@/request/types';
+import { useAppSelector } from '@/store';
+import { PROFESSION_VERSION_PERMISSION } from '@/constant/version';
 import {
   Box,
+  Chip,
   FormControlLabel,
   Radio,
   RadioGroup,
-  TextField,
   styled,
-  Tooltip,
+  TextField,
 } from '@mui/material';
 
-import { Controller, useForm } from 'react-hook-form';
-import { useEffect, useState } from 'react';
-import Autocomplete from '@mui/material/Autocomplete';
-import { message } from '@ctzhian/ui';
-import { FormItem, SettingCard, SettingCardItem } from './Common';
 import { getApiV1AppDetail, putApiV1App } from '@/request/App';
+import { message } from '@ctzhian/ui';
+import Autocomplete from '@mui/material/Autocomplete';
+import { useEffect, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { FormItem, SettingCardItem } from './Common';
 
 interface CardCommentProps {
   kb: DomainKnowledgeBaseDetail;
@@ -36,7 +36,7 @@ const DocumentComments = ({
   data: DomainAppDetailResp;
   refresh: () => void;
 }) => {
-  const { license, kb_id } = useAppSelector(state => state.config);
+  const { kb_id } = useAppSelector(state => state.config);
   const [isEdit, setIsEdit] = useState(false);
   const { control, handleSubmit, setValue } = useForm({
     defaultValues: {
@@ -55,8 +55,6 @@ const DocumentComments = ({
       +data?.settings?.web_app_comment_settings?.moderation_enable,
     );
   }, [data]);
-
-  const isPro = license.edition === 1 || license.edition === 2;
 
   const onSubmit = handleSubmit(formData => {
     putApiV1App(
@@ -107,7 +105,7 @@ const DocumentComments = ({
           )}
         />
       </FormItem>
-      <FormItem label='评论审核' tooltip={!isPro && '联创版和企业版可用'}>
+      <FormItem label='评论审核' permission={PROFESSION_VERSION_PERMISSION}>
         <Controller
           control={control}
           name='moderation_enable'
@@ -115,7 +113,6 @@ const DocumentComments = ({
             <RadioGroup
               row
               {...field}
-              value={isPro ? field.value : undefined}
               onChange={e => {
                 setIsEdit(true);
                 field.onChange(+e.target.value as 1 | 0);
@@ -123,12 +120,12 @@ const DocumentComments = ({
             >
               <FormControlLabel
                 value={1}
-                control={<Radio size='small' disabled={!isPro} />}
+                control={<Radio size='small' />}
                 label={<StyledRadioLabel>启用</StyledRadioLabel>}
               />
               <FormControlLabel
                 value={0}
-                control={<Radio size='small' disabled={!isPro} />}
+                control={<Radio size='small' />}
                 label={<StyledRadioLabel>禁用</StyledRadioLabel>}
               />
             </RadioGroup>
@@ -149,7 +146,7 @@ const AIQuestion = ({
   refresh: () => void;
 }) => {
   const [isEdit, setIsEdit] = useState(false);
-  const { kb_id, license } = useAppSelector(state => state.config);
+  const { kb_id } = useAppSelector(state => state.config);
   const { control, handleSubmit, setValue } = useForm({
     defaultValues: {
       is_enabled: true,
@@ -158,7 +155,6 @@ const AIQuestion = ({
     },
   });
   const [inputValue, setInputValue] = useState('');
-  const isEnterprise = license.edition === 2;
 
   const onSubmit = handleSubmit(formData => {
     putApiV1App(
@@ -220,6 +216,19 @@ const AIQuestion = ({
                 const newValues = [...new Set(newValue as string[])];
                 field.onChange(newValues);
               }}
+              renderValue={(value, getTagProps) => {
+                return value.map((option, index: number) => {
+                  return (
+                    <Chip
+                      variant='outlined'
+                      size='small'
+                      label={<Box sx={{ fontSize: '12px' }}>{option}</Box>}
+                      {...getTagProps({ index })}
+                      key={index}
+                    />
+                  );
+                });
+              }}
               renderInput={params => (
                 <TextField
                   {...params}
@@ -259,7 +268,7 @@ const AIQuestion = ({
           )}
         />{' '}
       </FormItem>
-      <FormItem label='免责声明' tooltip={!isEnterprise && '企业版可用'}>
+      <FormItem label='免责声明' permission={PROFESSION_VERSION_PERMISSION}>
         <Controller
           control={control}
           name='disclaimer'
@@ -268,7 +277,6 @@ const AIQuestion = ({
               {...field}
               fullWidth
               value={field.value || ''}
-              disabled={!isEnterprise}
               placeholder='请输入免责声明'
               onChange={e => {
                 setIsEdit(true);
@@ -290,7 +298,7 @@ const DocumentContribution = ({
   refresh: () => void;
 }) => {
   const [isEdit, setIsEdit] = useState(false);
-  const { license, kb_id } = useAppSelector(state => state.config);
+  const { kb_id } = useAppSelector(state => state.config);
   const { control, handleSubmit, setValue } = useForm({
     defaultValues: {
       is_enable: false,
@@ -316,7 +324,6 @@ const DocumentContribution = ({
     });
   });
 
-  const isPro = license.edition === 1 || license.edition === 2;
   useEffect(() => {
     setValue(
       'is_enable',
@@ -326,46 +333,35 @@ const DocumentContribution = ({
   }, [data]);
 
   return (
-    <SettingCardItem
-      title={
-        <>
-          文档贡献
-          {!isPro && (
-            <Tooltip title='联创版和企业版可用' placement='top' arrow>
-              <InfoIcon sx={{ color: 'text.secondary', fontSize: 14 }} />
-            </Tooltip>
+    <SettingCardItem title='文档贡献' isEdit={isEdit} onSubmit={onSubmit}>
+      <FormItem label='文档贡献' permission={PROFESSION_VERSION_PERMISSION}>
+        <Controller
+          control={control}
+          name='is_enable'
+          render={({ field }) => (
+            <RadioGroup
+              row
+              {...field}
+              value={field.value}
+              onChange={e => {
+                setIsEdit(true);
+                field.onChange(e.target.value === 'true');
+              }}
+            >
+              <FormControlLabel
+                value={true}
+                control={<Radio size='small' />}
+                label={<StyledRadioLabel>启用</StyledRadioLabel>}
+              />
+              <FormControlLabel
+                value={false}
+                control={<Radio size='small' />}
+                label={<StyledRadioLabel>禁用</StyledRadioLabel>}
+              />
+            </RadioGroup>
           )}
-        </>
-      }
-      isEdit={isEdit}
-      onSubmit={onSubmit}
-    >
-      <Controller
-        control={control}
-        name='is_enable'
-        render={({ field }) => (
-          <RadioGroup
-            row
-            {...field}
-            value={isPro ? field.value : undefined}
-            onChange={e => {
-              setIsEdit(true);
-              field.onChange(e.target.value === 'true');
-            }}
-          >
-            <FormControlLabel
-              value={true}
-              control={<Radio size='small' disabled={!isPro} />}
-              label={<StyledRadioLabel>启用</StyledRadioLabel>}
-            />
-            <FormControlLabel
-              value={false}
-              control={<Radio size='small' disabled={!isPro} />}
-              label={<StyledRadioLabel>禁用</StyledRadioLabel>}
-            />
-          </RadioGroup>
-        )}
-      />
+        />
+      </FormItem>
     </SettingCardItem>
   );
 };
@@ -385,11 +381,17 @@ const CardFeedback = ({ kb }: CardCommentProps) => {
   if (!info) return <></>;
 
   return (
-    <SettingCard title='反馈'>
+    <Box
+      sx={{
+        width: 1000,
+        margin: 'auto',
+        pb: 4,
+      }}
+    >
       <AIQuestion data={info} refresh={getInfo} />
       <DocumentComments data={info} refresh={getInfo} />
       <DocumentContribution data={info} refresh={getInfo} />
-    </SettingCard>
+    </Box>
   );
 };
 

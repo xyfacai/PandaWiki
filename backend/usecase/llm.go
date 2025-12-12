@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"math"
 	"slices"
 	"strings"
 	"time"
@@ -16,8 +15,6 @@ import (
 	"github.com/cloudwego/eino/schema"
 	"github.com/pkoukk/tiktoken-go"
 	"github.com/samber/lo"
-	"github.com/samber/lo/parallel"
-	"golang.org/x/sync/semaphore"
 
 	"github.com/chaitin/panda-wiki/config"
 	"github.com/chaitin/panda-wiki/domain"
@@ -38,6 +35,11 @@ type LLMUsecase struct {
 	logger           *log.Logger
 	modelkit         *modelkit.ModelKit
 }
+
+const (
+	summaryChunkTokenLimit = 30720 // 30KB tokens per chunk
+	summaryMaxChunks       = 4     // max chunks to process for summary
+)
 
 func NewLLMUsecase(config *config.Config, rag rag.RAGService, conversationRepo *pg.ConversationRepository, kbRepo *pg.KnowledgeBaseRepository, nodeRepo *pg.NodeRepository, modelRepo *pg.ModelRepository, promptRepo *pg.PromptRepo, logger *log.Logger) *LLMUsecase {
 	tiktoken.SetBpeLoader(&utils.Localloader{})
@@ -60,6 +62,7 @@ func (u *LLMUsecase) FormatConversationMessages(
 	conversationID string,
 	kbID string,
 	groupIDs []int,
+	systemPrompt string,
 ) ([]*schema.Message, []*domain.RankedNodeChunks, error) {
 	messages := make([]*schema.Message, 0)
 	rankedNodes := make([]*domain.RankedNodeChunks, 0)
@@ -83,12 +86,15 @@ func (u *LLMUsecase) FormatConversationMessages(
 		if len(historyMessages) > 0 {
 			question := historyMessages[len(historyMessages)-1].Content
 
-			systemPrompt := domain.SystemPrompt
-			if prompt, err := u.promptRepo.GetPrompt(ctx, kbID); err != nil {
-				u.logger.Error("get prompt from settings failed", log.Error(err))
-			} else {
-				if prompt != "" {
-					systemPrompt = prompt
+			if systemPrompt == "" {
+				if settingPrompt, err := u.promptRepo.GetPrompt(ctx, kbID); err != nil {
+					u.logger.Error("get prompt from settings failed", log.Error(err))
+				} else {
+					if settingPrompt != "" {
+						systemPrompt = settingPrompt
+					} else {
+						systemPrompt = domain.SystemDefaultPrompt
+					}
 				}
 			}
 
@@ -96,47 +102,14 @@ func (u *LLMUsecase) FormatConversationMessages(
 				schema.SystemMessage(systemPrompt),
 				schema.UserMessage(domain.UserQuestionFormatter),
 			)
-			// query dataset id from kb
 			kb, err := u.kbRepo.GetKnowledgeBaseByID(ctx, kbID)
 			if err != nil {
 				return nil, nil, fmt.Errorf("get kb failed: %w", err)
 			}
-			// get related documents from raglite
-			records, err := u.rag.QueryRecords(ctx, []string{kb.DatasetID}, question, groupIDs, historyMessages[:len(historyMessages)-1])
+			rankedNodes, err = u.GetRankNodes(ctx, []string{kb.DatasetID}, question, groupIDs, 0, historyMessages[:len(historyMessages)-1])
 			if err != nil {
-				return nil, nil, fmt.Errorf("get records from raglite failed: %w", err)
+				return nil, nil, fmt.Errorf("get rank nodes failed: %w", err)
 			}
-			u.logger.Info("get related documents from raglite", log.Any("record_count", len(records)))
-			rankedNodesMap := make(map[string]*domain.RankedNodeChunks)
-			// get raw node by doc_id
-			if len(records) > 0 {
-				docIDs := lo.Uniq(lo.Map(records, func(item *domain.NodeContentChunk, _ int) string {
-					return item.DocID
-				}))
-				u.logger.Info("docIDs", log.Any("docIDs", docIDs))
-				docIDNode, err := u.nodeRepo.GetNodeReleasesByDocIDs(ctx, docIDs)
-				if err != nil {
-					return nil, nil, fmt.Errorf("get nodes by ids failed: %w", err)
-				}
-				u.logger.Info("get nodes by ids", log.Any("docIDNode", docIDNode))
-				for _, record := range records {
-					if nodeChunk, ok := rankedNodesMap[record.DocID]; !ok {
-						if docNode, ok := docIDNode[record.DocID]; ok {
-							rankNodeChunk := &domain.RankedNodeChunks{
-								NodeID:      docNode.NodeID,
-								NodeName:    docNode.Name,
-								NodeSummary: docNode.Meta.Summary,
-								Chunks:      []*domain.NodeContentChunk{record},
-							}
-							rankedNodes = append(rankedNodes, rankNodeChunk)
-							rankedNodesMap[record.DocID] = rankNodeChunk
-						}
-					} else {
-						nodeChunk.Chunks = append(nodeChunk.Chunks, record)
-					}
-				}
-			}
-			u.logger.Debug("ranked nodes", log.Int("rankedNodesCount", len(rankedNodes)))
 			documents := domain.FormatNodeChunks(rankedNodes, kb.AccessSettings.BaseURL)
 			u.logger.Debug("documents", log.String("documents", documents))
 
@@ -230,52 +203,59 @@ func (u *LLMUsecase) SummaryNode(ctx context.Context, model *domain.Model, name,
 		return "", err
 	}
 
-	chunks, err := u.SplitByTokenLimit(content, int(math.Floor(1024*32*0.95)))
+	chunks, err := u.SplitByTokenLimit(content, summaryChunkTokenLimit)
 	if err != nil {
 		return "", err
 	}
-	sem := semaphore.NewWeighted(int64(10))
-	summaries := parallel.Map(chunks, func(chunk string, _ int) string {
-		if err := sem.Acquire(ctx, 1); err != nil {
-			u.logger.Error("Failed to acquire semaphore for chunk: ", log.Error(err))
-			return ""
-		}
-		defer sem.Release(1)
-		summary, err := u.Generate(ctx, chatModel, []*schema.Message{
-			{
-				Role:    "system",
-				Content: "你是文档总结助手，请根据文档内容总结出文档的摘要。摘要是纯文本，应该简洁明了，不要超过160个字。",
-			},
-			{
-				Role:    "user",
-				Content: fmt.Sprintf("文档名称：%s\n文档内容：%s", name, chunk),
-			},
-		})
-		if err != nil {
-			u.logger.Error("Failed to generate summary for chunk: ", log.Error(err))
-			return ""
-		}
-		if strings.HasPrefix(summary, "<think>") {
-			// remove <think> body </think>
-			endIndex := strings.Index(summary, "</think>")
-			if endIndex != -1 {
-				summary = strings.TrimSpace(summary[endIndex+8:]) // 8 is length of "</think>"
-			}
-		}
-		return summary
-	})
-	// 使用lo.Filter处理错误
-	defeatSummary := lo.Filter(summaries, func(summary string, index int) bool {
-		return summary == ""
-	})
-	if len(defeatSummary) > 0 {
-		return "", fmt.Errorf("failed to generate summaries for all chunks: %d/%d", len(defeatSummary), len(chunks))
+	if len(chunks) > summaryMaxChunks {
+		u.logger.Debug("trim summary chunks for large document", log.String("node", name), log.Int("original_chunks", len(chunks)), log.Int("used_chunks", summaryMaxChunks))
+		chunks = chunks[:summaryMaxChunks]
 	}
 
-	contents, err := u.SplitByTokenLimit(strings.Join(summaries, "\n\n"), int(math.Floor(1024*32*0.95)))
-	if err != nil {
-		return "", err
+	summaries := make([]string, 0, len(chunks))
+	for idx, chunk := range chunks {
+		summary, err := u.requestSummary(ctx, chatModel, name, chunk)
+		if err != nil {
+			u.logger.Error("Failed to generate summary for chunk", log.Int("chunk_index", idx), log.Error(err))
+			continue
+		}
+		if summary == "" {
+			u.logger.Warn("Empty summary returned for chunk", log.Int("chunk_index", idx))
+			continue
+		}
+		summaries = append(summaries, summary)
 	}
+
+	if len(summaries) == 0 {
+		return "", fmt.Errorf("failed to generate summary for document %s", name)
+	}
+
+	// Join all summaries and generate final summary
+	joined := strings.Join(summaries, "\n\n")
+	finalSummary, err := u.requestSummary(ctx, chatModel, name, joined)
+	if err != nil {
+		u.logger.Error("Failed to generate final summary, using aggregated summaries", log.Error(err))
+		// Fallback: return the joined summaries directly
+		if len(joined) > 500 {
+			return joined[:500] + "...", nil
+		}
+		return joined, nil
+	}
+	return finalSummary, nil
+}
+
+func (u *LLMUsecase) trimThinking(summary string) string {
+	if !strings.HasPrefix(summary, "<think>") {
+		return summary
+	}
+	endIndex := strings.Index(summary, "</think>")
+	if endIndex == -1 {
+		return summary
+	}
+	return strings.TrimSpace(summary[endIndex+len("</think>"):])
+}
+
+func (u *LLMUsecase) requestSummary(ctx context.Context, chatModel model.BaseChatModel, name, content string) (string, error) {
 	summary, err := u.Generate(ctx, chatModel, []*schema.Message{
 		{
 			Role:    "system",
@@ -283,20 +263,13 @@ func (u *LLMUsecase) SummaryNode(ctx context.Context, model *domain.Model, name,
 		},
 		{
 			Role:    "user",
-			Content: fmt.Sprintf("文档名称：%s\n文档内容：%s", name, contents[0]),
+			Content: fmt.Sprintf("文档名称：%s\n文档内容：%s", name, content),
 		},
 	})
 	if err != nil {
 		return "", err
 	}
-	if strings.HasPrefix(summary, "<think>") {
-		// remove <think> body </think>
-		endIndex := strings.Index(summary, "</think>")
-		if endIndex != -1 {
-			summary = strings.TrimSpace(summary[endIndex+8:]) // 8 is length of "</think>"
-		}
-	}
-	return summary, nil
+	return strings.TrimSpace(u.trimThinking(summary)), nil
 }
 
 func (u *LLMUsecase) SplitByTokenLimit(text string, maxTokens int) ([]string, error) {
@@ -328,4 +301,53 @@ func (u *LLMUsecase) SplitByTokenLimit(text string, maxTokens int) ([]string, er
 	}
 
 	return result, nil
+}
+
+func (u *LLMUsecase) GetRankNodes(
+	ctx context.Context,
+	datasetIDs []string,
+	question string,
+	groupIDs []int,
+	similarityThreshold float64,
+	historyMessages []*schema.Message,
+) ([]*domain.RankedNodeChunks, error) {
+	var rankedNodes []*domain.RankedNodeChunks
+	// get related documents from raglite
+	records, err := u.rag.QueryRecords(ctx, datasetIDs, question, groupIDs, similarityThreshold, historyMessages)
+	if err != nil {
+		return nil, fmt.Errorf("get records from raglite failed: %w", err)
+	}
+	u.logger.Info("get related documents from raglite", log.Any("record_count", len(records)))
+	rankedNodesMap := make(map[string]*domain.RankedNodeChunks)
+	// get raw node by doc_id
+	if len(records) > 0 {
+		docIDs := lo.Uniq(lo.Map(records, func(item *domain.NodeContentChunk, _ int) string {
+			return item.DocID
+		}))
+		u.logger.Info("node chunk doc ids", log.Any("docIDs", docIDs))
+		docIDNode, err := u.nodeRepo.GetNodeReleasesWithPathsByDocIDs(ctx, docIDs)
+		if err != nil {
+			return nil, fmt.Errorf("get nodes by ids failed: %w", err)
+		}
+		u.logger.Info("get node release by doc ids", log.Any("docIDNode", lo.Keys(docIDNode)))
+		for _, record := range records {
+			if nodeChunk, ok := rankedNodesMap[record.DocID]; !ok {
+				if docNode, ok := docIDNode[record.DocID]; ok {
+					rankNodeChunk := &domain.RankedNodeChunks{
+						NodeID:        docNode.NodeID,
+						NodeName:      docNode.Name,
+						NodeSummary:   docNode.Meta.Summary,
+						NodeEmoji:     docNode.Meta.Emoji,
+						NodePathNames: docNode.PathNames,
+						Chunks:        []*domain.NodeContentChunk{record},
+					}
+					rankedNodes = append(rankedNodes, rankNodeChunk)
+					rankedNodesMap[record.DocID] = rankNodeChunk
+				}
+			} else {
+				nodeChunk.Chunks = append(nodeChunk.Chunks, record)
+			}
+		}
+	}
+	return rankedNodes, nil
 }

@@ -1,10 +1,10 @@
-import { ITreeItem, NodeListItem } from '@/api';
+import { ITreeItem } from '@/api';
 import {
   TreeMenuItem,
   TreeMenuOptions,
 } from '@/components/Drag/DragTree/TreeMenu';
+import { TreeItems } from '@/components/TreeDragSortable';
 import { DomainNodeListItemResp } from '@/request/types';
-import { TreeItems } from 'dnd-kit-sortable-tree';
 import { createContext } from 'react';
 
 export interface DragTreeProps {
@@ -12,18 +12,23 @@ export interface DragTreeProps {
   readOnly?: boolean;
   menu?: (opra: TreeMenuOptions) => TreeMenuItem[];
   refresh?: () => void;
+  updateData?: (data: TreeItems<ITreeItem>) => void;
   ui?: 'select' | 'move';
   selected?: string[];
   supportSelect?: boolean;
   onSelectChange?: (value: string[], id?: string) => void;
   relativeSelect?: boolean;
   traverseFolder?: boolean;
+  disabled?: (value: ITreeItem) => boolean;
+  virtualized?: boolean;
+  virtualizedHeight?: number | string;
 }
 
 // 定义上下文类型
 export interface AppContextType {
-  items: TreeItems<ITreeItem>;
-  setItems: React.Dispatch<React.SetStateAction<TreeItems<ITreeItem>>>;
+  data: ITreeItem[];
+  scrollToItem?: (itemId: string) => void;
+  updateData?: (data: TreeItems<ITreeItem>) => void;
 }
 
 // 使用正确的类型创建上下文
@@ -104,7 +109,10 @@ export function convertToTree(data: DomainNodeListItemResp[]) {
       status: item.status,
       order: item.position,
       emoji: item.emoji,
+      content_type: item.content_type,
       type: item.type!,
+      rag_status: item.rag_info?.status,
+      rag_message: item.rag_info?.message,
       parentId: item.parent_id,
       children: [],
       canHaveChildren: item.type === 1,
@@ -200,3 +208,19 @@ export function getSiblingItemIds(
 
   return result;
 }
+
+export const collapseAllFolders = (
+  list: TreeItems<ITreeItem>,
+  collapsed: boolean,
+): TreeItems<ITreeItem> => {
+  return list.map(it => ({
+    ...it,
+    collapsed: it.type === 1 ? collapsed : it.collapsed,
+    children: it.children
+      ? (collapseAllFolders(
+          it.children as TreeItems<ITreeItem>,
+          collapsed,
+        ) as ITreeItem[])
+      : it.children,
+  }));
+};

@@ -1,8 +1,16 @@
 import { KnowledgeBaseListItem } from '@/api';
 import { useURLSearchParams } from '@/hooks';
+import { useFeatureValue } from '@/hooks';
+import { ConstsUserRole } from '@/request/types';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { setKbC, setKbId } from '@/store/slices/config';
-import custom from '@/themes/custom';
+import { Ellipsis, message } from '@ctzhian/ui';
+import {
+  IconXiala,
+  IconZuzhi,
+  IconTianjiawendang,
+  IconShanchu,
+} from '@panda-wiki/icons';
 import {
   Box,
   Button,
@@ -11,11 +19,10 @@ import {
   Select,
   Stack,
 } from '@mui/material';
-import { Ellipsis, Icon, message } from '@ctzhian/ui';
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import KBDelete from './KBDelete';
-import { ConstsUserRole } from '@/request/types';
+import KBModify from './KBModify';
 
 const KBSelect = () => {
   const location = useLocation();
@@ -23,12 +30,13 @@ const KBSelect = () => {
 
   const dispatch = useAppDispatch();
   const [_, setSearchParams] = useURLSearchParams();
-  const { kb_id, kbList, license, user } = useAppSelector(
-    state => state.config,
-  );
+  const { kb_id, kbList, user } = useAppSelector(state => state.config);
 
+  const [modifyOpen, setModifyOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [opraData, setOpraData] = useState<KnowledgeBaseListItem | null>(null);
+
+  const wikiCount = useFeatureValue('wikiCount');
 
   return (
     <>
@@ -67,8 +75,7 @@ const KBSelect = () => {
           }}
           IconComponent={({ className, ...rest }) => {
             return (
-              <Icon
-                type='icon-xiala'
+              <IconXiala
                 className={className + ' icon-xiala'}
                 sx={{
                   position: 'absolute',
@@ -115,13 +122,12 @@ const KBSelect = () => {
               borderRadius: '5px',
               bgcolor: 'background.paper3',
               '&:hover': {
-                bgcolor: custom.selectedMenuItemBgColor,
+                bgcolor: 'rgba(50,72,242,0.1)',
               },
             }}
             fullWidth
             disabled={
-              (license.edition === 0 && (kbList || []).length >= 1) ||
-              (license.edition === 1 && (kbList || []).length >= 3) ||
+              (kbList || []).length >= wikiCount ||
               user.role === ConstsUserRole.UserRoleUser
             }
             onClick={event => {
@@ -147,32 +153,50 @@ const KBSelect = () => {
                 gap={1.5}
                 sx={{ width: '100%' }}
               >
-                <Icon
-                  type='icon-zuzhi'
+                <IconZuzhi
                   sx={{ fontSize: 14, color: 'text.secondary', flexShrink: 0 }}
                 />
                 <Ellipsis>{item.name}</Ellipsis>
                 <Box sx={{ width: 10 }}></Box>
                 {user.role !== ConstsUserRole.UserRoleUser && (
-                  <IconButton
-                    size='small'
-                    className='hover-del-space-icon'
-                    sx={{ display: 'none' }}
-                  >
-                    <Icon
-                      type='icon-shanchu'
-                      sx={{
-                        fontSize: 14,
-                        color: 'text.tertiary',
-                        flexShrink: 0,
+                  <Stack direction={'row'} alignItems={'center'}>
+                    <IconButton
+                      size='small'
+                      className='hover-del-space-icon'
+                      sx={{ display: 'none' }}
+                      onClick={event => {
+                        event.stopPropagation();
+                        setOpraData(item);
+                        setModifyOpen(true);
                       }}
+                    >
+                      <IconTianjiawendang
+                        sx={{
+                          fontSize: 14,
+                          color: 'text.tertiary',
+                          flexShrink: 0,
+                        }}
+                      />
+                    </IconButton>
+                    <IconButton
+                      size='small'
+                      className='hover-del-space-icon'
+                      sx={{ display: 'none' }}
                       onClick={event => {
                         event.stopPropagation();
                         setOpraData(item);
                         setDeleteOpen(true);
                       }}
-                    />
-                  </IconButton>
+                    >
+                      <IconShanchu
+                        sx={{
+                          fontSize: 14,
+                          color: 'text.tertiary',
+                          flexShrink: 0,
+                        }}
+                      />
+                    </IconButton>
+                  </Stack>
                 )}
               </Stack>
             </MenuItem>
@@ -183,6 +207,11 @@ const KBSelect = () => {
         open={deleteOpen}
         data={opraData}
         onClose={() => setDeleteOpen(false)}
+      />
+      <KBModify
+        open={modifyOpen}
+        data={opraData}
+        onClose={() => setModifyOpen(false)}
       />
     </>
   );

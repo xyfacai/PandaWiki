@@ -17,13 +17,12 @@ export interface config {
   kb_c: boolean;
   modelStatus: boolean;
   kbDetail: DomainKnowledgeBaseDetail;
-  appPreviewData:
-    | (Omit<DomainAppDetailResp, 'settings'> & {
-        settings: Partial<AppSetting>;
-      })
-    | null;
+  appPreviewData: DomainAppDetailResp | null;
   refreshAdminRequest: () => void;
+  isRefreshDocList: boolean;
+  isCreateWikiModalOpen: boolean;
 }
+
 const initialState: config = {
   user: {
     id: '',
@@ -43,6 +42,8 @@ const initialState: config = {
   kbDetail: {} as DomainKnowledgeBaseDetail,
   appPreviewData: null,
   refreshAdminRequest: () => {},
+  isRefreshDocList: false,
+  isCreateWikiModalOpen: false,
 };
 
 const configSlice = createSlice({
@@ -80,6 +81,12 @@ const configSlice = createSlice({
     setRefreshAdminRequest(state, { payload }) {
       state.refreshAdminRequest = payload;
     },
+    setIsRefreshDocList(state, { payload }) {
+      state.isRefreshDocList = payload;
+    },
+    setIsCreateWikiModalOpen(state, { payload }) {
+      state.isCreateWikiModalOpen = payload;
+    },
   },
 });
 
@@ -94,5 +101,7 @@ export const {
   setKbDetail,
   setRefreshAdminRequest,
   setModelList,
+  setIsRefreshDocList,
+  setIsCreateWikiModalOpen,
 } = configSlice.actions;
 export default configSlice.reducer;

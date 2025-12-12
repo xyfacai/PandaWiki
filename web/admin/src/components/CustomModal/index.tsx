@@ -1,81 +1,141 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Button, Stack, Typography } from '@mui/material';
-import { CusTabs, Icon, message, Modal } from '@ctzhian/ui';
+import { CusTabs, message, Modal } from '@ctzhian/ui';
 import {
-  DomainKnowledgeBaseDetail,
+  getApiV1NodeRecommendNodes,
   getApiV1KnowledgeBaseDetail,
 } from '@/request';
-import { DomainAppDetailResp } from '@/request/types';
+import {
+  DomainAppDetailResp,
+  DomainWebAppLandingConfigResp,
+} from '@/request/types';
+import { IconPCduan, IconYidongduan } from '@panda-wiki/icons';
+
 import { getApiV1AppDetail, putApiV1App } from '@/request/App';
 import { useAppSelector, useAppDispatch } from '@/store';
 import { setAppPreviewData } from '@/store/slices/config';
 import ComponentBar from './components/components/ComponentBar';
 import ConfigBar from './components/config/ConfigBar';
 import ShowContent from './components/ShowContent';
-import HeaderConfig from './components/config/HeaderConfig';
-import FooterConfig from './components/config/FooterConfig';
+import {
+  COMPONENTS_MAP,
+  DEFAULT_DATA,
+  TYPE_TO_CONFIG_LABEL,
+} from './constants';
+import { v4 as uuidv4 } from 'uuid';
+
+type WebAppLandingConfigWithId = DomainWebAppLandingConfigResp & { id: string };
 
 interface CustomModalProps {
   open: boolean;
   onCancel: () => void;
+  refresh: (v: any) => void;
+  disabledComponents?: string[];
+  components?: string[] | null;
+  title?: string;
 }
 
 export interface Component {
+  id: string;
   name: string;
   title: string;
-  component: React.ComponentType<any>;
+  component: React.FC<any>;
+  config: React.FC<any>;
+  fixed?: boolean;
+  disabled?: boolean;
+  hidden?: boolean;
 }
 
-const CustomModal = ({ open, onCancel }: CustomModalProps) => {
+const CustomModal = ({
+  open,
+  onCancel,
+  refresh,
+  title,
+  disabledComponents,
+  components: propsComponents,
+}: CustomModalProps) => {
   const dispatch = useAppDispatch();
   const { kb_id } = useAppSelector(state => state.config);
-  const [kb, setKb] = useState<DomainKnowledgeBaseDetail | null>(null);
   const [info, setInfo] = useState<DomainAppDetailResp>();
   const [renderMode, setRenderMode] = useState<'pc' | 'mobile'>('pc');
-  const [curComponent, setCurComponent] = useState<string>('header');
-  const [isEdit, setIsEdit] = useState(false);
-  const [scale, setScale] = useState(1);
+  const bannerRefId = useRef<string>(uuidv4());
   const [components, setComponents] = useState<Component[]>([
-    {
-      name: 'header',
-      title: '顶部导航',
-      component: HeaderConfig,
-    },
-    {
-      name: 'footer',
-      title: '底部导航',
-      component: FooterConfig,
-    },
+    { ...COMPONENTS_MAP.header, id: uuidv4() },
+    { ...COMPONENTS_MAP.banner, id: bannerRefId.current },
+    { ...COMPONENTS_MAP.footer, id: uuidv4() },
   ]);
+  const [curComponent, setCurComponent] = useState<Component>(components[0]);
+  const [isEdit, setIsEdit] = useState(false);
+  const [scale, setScale] = useState(0.6);
+  const [baseUrl, setBaseUrl] = useState('');
   const appPreviewData = useAppSelector(state => state.config.appPreviewData);
 
-  const refresh = (value: DomainAppDetailResp) => {
-    if (!info) return;
-    const newInfo = {
-      ...info,
-      ...value,
-    };
-    setInfo(newInfo);
-  };
-  const getKb = () => {
-    if (!kb_id) return;
-    getApiV1KnowledgeBaseDetail({ id: kb_id }).then(res => setKb(res));
-  };
   const getInfo = async () => {
-    if (!kb) return;
-    const res = await getApiV1AppDetail({ kb_id: kb.id!, type: '1' });
+    const res = await getApiV1AppDetail({ kb_id: kb_id, type: '1' });
+    const web_app_landing_configs = res.settings?.web_app_landing_configs || [];
+
+    await Promise.all(
+      web_app_landing_configs
+        .map((item, index) => {
+          if (item.node_ids && item.node_ids.length > 0) {
+            return getApiV1NodeRecommendNodes({
+              kb_id,
+              node_ids: item.node_ids,
+            }).then(res => {
+              const label =
+                TYPE_TO_CONFIG_LABEL[
+                  item.type as keyof typeof TYPE_TO_CONFIG_LABEL
+                ];
+              (web_app_landing_configs[index] as any)[label] = {
+                ...item[label],
+                nodes: res,
+              };
+            });
+          }
+        })
+        .filter(Boolean),
+    );
     setInfo(res);
-    dispatch(setAppPreviewData(res));
+    handleInitComponents(res);
   };
   const onSubmit = () => {
     if (!info || !appPreviewData) return;
+
+    const submitWebAppLandingConfigs = components
+      .map(item => {
+        if (item.name === 'header' || item.name === 'footer') return null;
+        const config = appPreviewData.settings?.web_app_landing_configs?.find(
+          (con: any) => con.id === item.id,
+        );
+
+        return {
+          type: config!.type,
+          [TYPE_TO_CONFIG_LABEL[
+            config!.type as keyof typeof TYPE_TO_CONFIG_LABEL
+          ]]: {
+            ...config,
+          },
+          node_ids: (config!.nodes?.map(node => node?.id) || []) as string[],
+        };
+      })
+      .filter(Boolean);
+
     putApiV1App(
       { id: info.id! },
-      // @ts-expect-error 类型不匹配
-      { settings: { ...info.settings, ...appPreviewData.settings }, kb_id },
+      {
+        settings: {
+          ...info.settings,
+          ...appPreviewData.settings,
+          // @ts-expect-error ignore
+          web_app_landing_configs: submitWebAppLandingConfigs,
+        },
+        kb_id,
+      },
     ).then(() => {
-      // @ts-expect-error 类型不匹配
-      refresh(appPreviewData);
+      refresh({
+        ...appPreviewData.settings,
+        web_app_landing_configs: submitWebAppLandingConfigs,
+      });
       message.success('保存成功');
       setIsEdit(false);
     });
@@ -91,29 +151,118 @@ const CustomModal = ({ open, onCancel }: CustomModalProps) => {
   const resetZoom = () => {
     setScale(1);
   };
-  useEffect(() => {
-    if (!info) return;
-    dispatch(setAppPreviewData(info));
-    setComponents([
-      {
-        name: 'header',
-        component: HeaderConfig,
-        title: '顶部导航',
-      },
-      {
-        name: 'footer',
-        title: '底部导航',
-        component: FooterConfig,
-      },
-    ]);
-  }, [info]);
+
+  const handleInitComponents = (info: DomainAppDetailResp) => {
+    const mergeInfo = { ...info };
+    const web_app_landing_configs =
+      info.settings?.web_app_landing_configs || [];
+    if (web_app_landing_configs.length === 0) {
+      mergeInfo.settings = {
+        ...mergeInfo.settings,
+        web_app_landing_configs: [
+          {
+            type: 'banner',
+            id: bannerRefId.current,
+            ...DEFAULT_DATA.banner,
+          } as WebAppLandingConfigWithId,
+        ],
+      };
+    } else {
+      const newWebAppLandingConfigs = web_app_landing_configs.map(item => {
+        return {
+          id:
+            item.type === 'banner'
+              ? bannerRefId.current
+              : (item as any).id || uuidv4(),
+          type: item.type,
+          ...(item as any)[
+            TYPE_TO_CONFIG_LABEL[item.type as keyof typeof TYPE_TO_CONFIG_LABEL]
+          ],
+        };
+      });
+
+      mergeInfo.settings = {
+        ...mergeInfo.settings,
+        web_app_landing_configs: newWebAppLandingConfigs,
+      };
+
+      setComponents(pre => {
+        let customComponents = newWebAppLandingConfigs.map(item => {
+          return {
+            ...COMPONENTS_MAP[item.type as keyof typeof COMPONENTS_MAP],
+            id: item.id,
+          };
+        });
+        // @ts-expect-error ignore
+        customComponents = [pre[0], ...customComponents, pre[pre.length - 1]];
+
+        if (propsComponents) {
+          customComponents = customComponents.map(item => ({
+            ...item,
+            hidden: !propsComponents?.includes(item.name),
+          }));
+        }
+        if ((disabledComponents || []).length > 0) {
+          customComponents = customComponents.map(item => ({
+            ...item,
+            disabled: disabledComponents?.includes(item.name) || false,
+          }));
+        }
+        setCurComponent(
+          customComponents.find(item => !item.disabled && !item.hidden) ||
+            customComponents[0],
+        );
+        return customComponents;
+      });
+    }
+    dispatch(setAppPreviewData(mergeInfo));
+  };
 
   useEffect(() => {
-    if (kb_id && open) getKb();
+    if (open && kb_id) {
+      getApiV1KnowledgeBaseDetail({ id: kb_id }).then(res => {
+        if (res.access_settings?.base_url) {
+          setBaseUrl(res!.access_settings!.base_url!);
+        } else {
+          let defaultUrl: string = '';
+          const host = res.access_settings?.hosts?.[0] || '';
+          if (!host) return;
+
+          if (
+            res.access_settings?.ssl_ports &&
+            res.access_settings?.ssl_ports.length > 0
+          ) {
+            defaultUrl = res.access_settings.ssl_ports.includes(443)
+              ? `https://${host}`
+              : `https://${host}:${res.access_settings.ssl_ports[0]}`;
+          } else if (
+            res.access_settings?.ports &&
+            res.access_settings?.ports.length > 0
+          ) {
+            defaultUrl = res.access_settings.ports.includes(80)
+              ? `http://${host}`
+              : `http://${host}:${res.access_settings.ports[0]}`;
+          }
+          setBaseUrl(defaultUrl);
+        }
+      });
+      getInfo();
+    }
   }, [kb_id, open]);
+
   useEffect(() => {
-    if (open) getInfo();
-  }, [kb, open]);
+    if (!open) {
+      setTimeout(() => {
+        setScale(0.6);
+        setIsEdit(false);
+        setComponents([
+          { ...COMPONENTS_MAP.header, id: uuidv4() },
+          { ...COMPONENTS_MAP.banner, id: bannerRefId.current },
+          { ...COMPONENTS_MAP.footer, id: uuidv4() },
+        ]);
+      }, 300);
+    }
+  }, [open]);
 
   return (
     <>
@@ -165,7 +314,7 @@ const CustomModal = ({ open, onCancel }: CustomModalProps) => {
                   fontWeight: 600,
                 }}
               >
-                自定义页面
+                {title || '自定义欢迎页'}
               </Typography>
               <Button
                 variant='contained'
@@ -190,18 +339,11 @@ const CustomModal = ({ open, onCancel }: CustomModalProps) => {
                   <CusTabs
                     list={[
                       {
-                        label: (
-                          <Icon type='icon-PCduan' sx={{ height: '32px' }} />
-                        ),
+                        label: <IconPCduan sx={{ fontSize: 14 }} />,
                         value: 'pc',
                       },
                       {
-                        label: (
-                          <Icon
-                            type='icon-yidongduan'
-                            sx={{ height: '32px' }}
-                          />
-                        ),
+                        label: <IconYidongduan sx={{ fontSize: 14 }} />,
                         value: 'mobile',
                       },
                     ]}
@@ -252,24 +394,31 @@ const CustomModal = ({ open, onCancel }: CustomModalProps) => {
               bgcolor: 'background.paper2',
               minHeight: 0,
               height: '100%',
+              ml: '20px',
             }}
           >
-            <ComponentBar
-              components={components}
-              setComponents={setComponents}
-              curComponent={curComponent}
-              setCurComponent={setCurComponent}
-              setIsEdit={setIsEdit}
-            ></ComponentBar>
+            {!propsComponents && (
+              <ComponentBar
+                components={components}
+                setComponents={setComponents}
+                curComponent={curComponent}
+                setCurComponent={setCurComponent}
+                setIsEdit={setIsEdit}
+                allowAdd={!propsComponents}
+              />
+            )}
+
             {appPreviewData ? (
               <ShowContent
-                curComponent={
-                  components.find(item => item.name === curComponent)!
-                }
+                curComponent={curComponent}
+                components={components}
+                setComponents={setComponents}
+                setIsEdit={setIsEdit}
                 setCurComponent={setCurComponent}
                 renderMode={renderMode}
                 scale={scale}
-              ></ShowContent>
+                baseUrl={baseUrl}
+              />
             ) : (
               <Stack sx={{ width: '100%' }}>loading...</Stack>
             )}

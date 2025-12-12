@@ -1,20 +1,21 @@
 import { ITreeItem } from '@/api';
-import { postApiV1NodeBatchMove } from '@/request/Node';
-import { DomainNodeListItemResp } from '@/request/types';
 import Card from '@/components/Card';
 import DragTree from '@/components/Drag/DragTree';
+import { postApiV1NodeBatchMove } from '@/request/Node';
+import { DomainNodeListItemResp } from '@/request/types';
 import { useAppSelector } from '@/store';
 import { convertToTree } from '@/utils/drag';
+import { message, Modal } from '@ctzhian/ui';
 import { Box, Checkbox, Stack } from '@mui/material';
-import { Icon, message, Modal } from '@ctzhian/ui';
 import { useEffect, useState } from 'react';
+import { IconWenjianjiaKai } from '@panda-wiki/icons';
 
 interface DocDeleteProps {
   open: boolean;
   onClose: () => void;
   data: DomainNodeListItemResp[];
   selected: DomainNodeListItemResp[];
-  refresh?: () => void;
+  onMoved?: (payload: { ids: string[]; parentId: string }) => void;
 }
 
 const MoveDocs = ({
@@ -22,7 +23,7 @@ const MoveDocs = ({
   onClose,
   data,
   selected,
-  refresh,
+  onMoved,
 }: DocDeleteProps) => {
   const { kb_id } = useAppSelector(state => state.config);
   const [tree, setTree] = useState<ITreeItem[]>([]);
@@ -45,7 +46,7 @@ const MoveDocs = ({
     postApiV1NodeBatchMove({ ids, parent_id, kb_id }).then(() => {
       message.success('移动成功');
       onClose();
-      refresh?.();
+      onMoved?.({ ids, parentId: parent_id });
     });
   };
 
@@ -83,7 +84,7 @@ const MoveDocs = ({
               setFolderIds(folderIds.includes('root') ? [] : ['root']);
             }}
           />
-          <Icon type={'icon-wenjianjia-kai'} />
+          <IconWenjianjiaKai sx={{ fontSize: 14 }} />
           <Box>根路径</Box>
         </Stack>
         <DragTree

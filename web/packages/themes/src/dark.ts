@@ -1,4 +1,3 @@
-/// <reference path="../theme.d.ts" />
 import { PaletteOptions } from '@mui/material';
 
 const darkPalette: PaletteOptions = {
@@ -28,6 +27,7 @@ const darkPalette: PaletteOptions = {
     dark: '#0C53B7',
     contrastText: '#fff',
   },
+  divider: '#313131',
   disabled: {
     main: '#666',
   },
@@ -48,13 +48,20 @@ const darkPalette: PaletteOptions = {
     paper3: '#202531',
     footer: '#242425',
   },
+  table: {
+    head: {
+      background: '#292929',
+    },
+    cell: {
+      border: '#434343',
+    },
+  },
   text: {
     primary: '#FFFFFF',
     secondary: 'rgba(255, 255, 255, 0.7)',
     tertiary: 'rgba(255, 255, 255, 0.5)',
     disabled: 'rgba(255, 255, 255, 0.3)',
   },
-  divider: '#525770',
 };
 
 export default darkPalette;

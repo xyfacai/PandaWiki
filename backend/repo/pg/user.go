@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/samber/lo"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
@@ -59,18 +60,14 @@ func (r *UserRepository) CreateUser(ctx context.Context, user *domain.User, edit
 	}
 	user.Password = string(hashedPassword)
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		if edition == consts.LicenseEditionContributor || edition == consts.LicenseEditionFree {
-			var count int64
-			if err := tx.Model(&domain.User{}).Count(&count).Error; err != nil {
-				return err
-			}
-			if edition == consts.LicenseEditionFree && count >= 1 {
-				return errors.New("free edition only allows 1 user")
-			}
-			if edition == consts.LicenseEditionContributor && count >= 5 {
-				return errors.New("contributor edition only allows 5 user")
-			}
+		var count int64
+		if err := tx.Model(&domain.User{}).Count(&count).Error; err != nil {
+			return err
 		}
+		if count >= domain.GetBaseEditionLimitation(ctx).MaxAdmin {
+			return fmt.Errorf("exceed max admin limit, current count: %d, max limit: %d", count, domain.GetBaseEditionLimitation(ctx).MaxAdmin)
+		}
+
 		if err := tx.Create(user).Error; err != nil {
 			return err
 		}
@@ -111,6 +108,22 @@ func (r *UserRepository) ListUsers(ctx context.Context) ([]v1.UserListItemResp, 
 		return nil, err
 	}
 	return users, nil
+}
+
+func (r *UserRepository) GetUsersAccountMap(ctx context.Context) (map[string]string, error) {
+	var users []v1.UserListItemResp
+	err := r.db.WithContext(ctx).
+		Model(&domain.User{}).
+		Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+
+	m := lo.SliceToMap(users, func(user v1.UserListItemResp) (string, string) {
+		return user.ID, user.Account
+	})
+
+	return m, nil
 }
 
 func (r *UserRepository) UpdateUserPassword(ctx context.Context, userID string, newPassword string) error {

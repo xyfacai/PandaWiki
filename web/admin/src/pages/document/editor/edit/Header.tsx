@@ -1,11 +1,12 @@
 import Cascader from '@/components/Cascader';
+import { VersionCanUse } from '@/components/VersionMask';
+import { BUSINESS_VERSION_PERMISSION } from '@/constant/version';
 import VersionPublish from '@/pages/release/components/VersionPublish';
 import { postApiV1Node } from '@/request';
 import { V1NodeDetailResp } from '@/request/types';
 import { useAppSelector } from '@/store';
 import { addOpacityToColor, getShortcutKeyText } from '@/utils';
-import { Ellipsis, Icon, message } from '@ctzhian/ui';
-import InfoIcon from '@mui/icons-material/Info';
+import { Ellipsis, message } from '@ctzhian/ui';
 import {
   Box,
   Button,
@@ -16,6 +17,12 @@ import {
   Tooltip,
   useTheme,
 } from '@mui/material';
+import {
+  IconBaocun,
+  IconDaochu,
+  IconGengduo,
+  IconMuluzhankai,
+} from '@panda-wiki/icons';
 import dayjs from 'dayjs';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
@@ -25,12 +32,6 @@ import DocDelete from '../../component/DocDelete';
 
 interface HeaderProps {
   edit: boolean;
-  collaborativeUsers?: Array<{
-    id: string;
-    name: string;
-    color: string;
-  }>;
-  isSyncing?: boolean;
   detail: V1NodeDetailResp;
   updateDetail: (detail: V1NodeDetailResp) => void;
   handleSave: () => void;
@@ -39,8 +40,6 @@ interface HeaderProps {
 
 const Header = ({
   edit,
-  collaborativeUsers = [],
-  isSyncing = false,
   detail,
   updateDetail,
   handleSave,
@@ -49,14 +48,16 @@ const Header = ({
   const theme = useTheme();
   const navigate = useNavigate();
   const firstLoad = useRef(true);
+  const [wikiUrl, setWikiUrl] = useState<string>('');
 
-  const { kb_id, license } = useAppSelector(state => state.config);
+  const { kb_id, license, kbList } = useAppSelector(state => state.config);
+
+  const currentKb = useMemo(() => {
+    return kbList?.find(item => item.id === kb_id);
+  }, [kbList, kb_id]);
+
   const { catalogOpen, nodeDetail, setCatalogOpen } =
     useOutletContext<WrapContext>();
-
-  // const docWidth = useMemo(() => {
-  //   return nodeDetail?.meta?.doc_width || 'full';
-  // }, [nodeDetail]);
 
   const [renameOpen, setRenameOpen] = useState(false);
   const [delOpen, setDelOpen] = useState(false);
@@ -64,25 +65,28 @@ const Header = ({
 
   const [showSaveTip, setShowSaveTip] = useState(false);
 
-  const isEnterprise = useMemo(() => {
-    return license.edition === 2;
+  const isBusiness = useMemo(() => {
+    return BUSINESS_VERSION_PERMISSION.includes(license.edition!);
   }, [license]);
 
-  // const updateDocWidth = (doc_width: string) => {
-  //   if (!nodeDetail) return;
-  //   putApiV1NodeDetail({
-  //     id: nodeDetail.id!,
-  //     kb_id,
-  //     doc_width,
-  //   }).then(() => {
-  //     updateDetail({
-  //       meta: {
-  //         ...nodeDetail.meta,
-  //         doc_width,
-  //       },
-  //     });
-  //   });
-  // };
+  useEffect(() => {
+    if (currentKb?.access_settings?.base_url) {
+      setWikiUrl(currentKb.access_settings.base_url);
+      return;
+    }
+    const host = currentKb?.access_settings?.hosts?.[0] || '';
+    if (host === '') return;
+    const { ssl_ports = [], ports = [] } = currentKb?.access_settings || {};
+
+    if (ssl_ports) {
+      if (ssl_ports.includes(443)) setWikiUrl(`https://${host}`);
+      else if (ssl_ports.length > 0)
+        setWikiUrl(`https://${host}:${ssl_ports[0]}`);
+    } else if (ports) {
+      if (ports.includes(80)) setWikiUrl(`http://${host}`);
+      else if (ports.length > 0) setWikiUrl(`http://${host}:${ports[0]}`);
+    }
+  }, [currentKb]);
 
   const handlePublish = useCallback(() => {
     if (nodeDetail?.status === 2 && !edit) {
@@ -127,13 +131,31 @@ const Header = ({
               },
             }}
           >
-            <Icon
-              type='icon-muluzhankai'
+            <IconMuluzhankai
               sx={{
                 fontSize: 24,
               }}
             />
           </Stack>
+        )}
+        {detail.meta?.content_type === 'md' && (
+          <Box
+            component={'span'}
+            sx={{
+              fontSize: 10,
+              color: 'white',
+              background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+              px: 1,
+              flexShrink: 0,
+              fontWeight: '500',
+              borderRadius: '4px',
+              height: '20px',
+              lineHeight: '20px',
+              display: 'inline-block',
+            }}
+          >
+            MD
+          </Box>
         )}
         <Stack sx={{ width: 0, flex: 1 }}>
           {detail?.name ? (
@@ -155,7 +177,7 @@ const Header = ({
             gap={0.5}
             sx={{ fontSize: 12, color: 'text.tertiary' }}
           >
-            <Icon type='icon-baocun' />
+            <IconBaocun sx={{ fontSize: 12 }} />
             {showSaveTip ? (
               '已保存'
             ) : nodeDetail?.updated_at ? (
@@ -165,158 +187,12 @@ const Header = ({
             )}
           </Stack>
         </Stack>
-        {/* <Box sx={{ mr: 1 }}>
-          {isSyncing ? (
-            collaborativeUsers.length > 0 && (
-              <Stack
-                direction={'row'}
-                alignItems={'center'}
-                gap={1}
-                sx={{ color: 'text.disabled', fontSize: 14 }}
-              >
-                <Box
-                  sx={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: '50%',
-                    bgcolor: 'success.main',
-                  }}
-                />
-                {collaborativeUsers.length} 人在线
-              </Stack>
-            )
-          ) : (
-            <Stack
-              direction={'row'}
-              alignItems={'center'}
-              gap={1}
-              sx={{ color: 'text.disabled', fontSize: 14 }}
-            >
-              <Box
-                sx={{
-                  width: 6,
-                  height: 6,
-                  borderRadius: '50%',
-                  bgcolor: 'divider',
-                }}
-              />
-              离线编辑
-            </Stack>
-          )}
-        </Box> */}
         <Stack direction={'row'} gap={1}>
           <Cascader
             list={[
-              // {
-              //   key: 'page_width',
-              //   label: (
-              //     <StyledMenuSelect sx={{ width: 120 }}>
-              //       <Stack
-              //         direction={'row'}
-              //         alignItems={'center'}
-              //         justifyContent={'space-between'}
-              //         sx={{ width: '100%' }}
-              //       >
-              //         页面宽度
-              //         <Icon
-              //           type='icon-xiala-copy'
-              //           sx={{ color: 'text.disabled', fontSize: 18, mr: -1 }}
-              //         />
-              //       </Stack>
-              //     </StyledMenuSelect>
-              //   ),
-              //   children: [
-              //     {
-              //       key: 'full',
-              //       label: (
-              //         <StyledMenuSelect>
-              //           <Stack
-              //             direction={'row'}
-              //             alignItems={'center'}
-              //             justifyContent={'space-between'}
-              //             sx={{ width: '100%' }}
-              //           >
-              //             全屏
-              //             {docWidth === 'full' && (
-              //               <Icon
-              //                 type='icon-duihao1'
-              //                 sx={{
-              //                   color: 'primary.main',
-              //                   fontSize: 14,
-              //                   mr: -1,
-              //                   mt: -0.5,
-              //                 }}
-              //               />
-              //             )}
-              //           </Stack>
-              //         </StyledMenuSelect>
-              //       ),
-              //       onClick: () => {
-              //         updateDocWidth('full');
-              //       },
-              //     },
-              //     {
-              //       key: 'wide',
-              //       label: (
-              //         <StyledMenuSelect>
-              //           <Stack
-              //             direction={'row'}
-              //             alignItems={'center'}
-              //             justifyContent={'space-between'}
-              //             sx={{ width: '100%' }}
-              //           >
-              //             超宽
-              //             {docWidth === 'wide' && (
-              //               <Icon
-              //                 type='icon-duihao1'
-              //                 sx={{
-              //                   color: 'primary.main',
-              //                   fontSize: 14,
-              //                   mr: -1,
-              //                   mt: -0.5,
-              //                 }}
-              //               />
-              //             )}
-              //           </Stack>
-              //         </StyledMenuSelect>
-              //       ),
-              //       onClick: () => {
-              //         updateDocWidth('wide');
-              //       },
-              //     },
-              //     {
-              //       key: 'normal',
-              //       label: (
-              //         <StyledMenuSelect>
-              //           <Stack
-              //             direction={'row'}
-              //             alignItems={'center'}
-              //             justifyContent={'space-between'}
-              //             sx={{ width: '100%' }}
-              //           >
-              //             常规
-              //             {docWidth === 'normal' && (
-              //               <Icon
-              //                 type='icon-duihao1'
-              //                 sx={{
-              //                   color: 'primary.main',
-              //                   fontSize: 14,
-              //                   mr: -1,
-              //                   mt: -0.5,
-              //                 }}
-              //               />
-              //             )}
-              //           </Stack>
-              //         </StyledMenuSelect>
-              //       ),
-              //       onClick: () => {
-              //         updateDocWidth('normal');
-              //       },
-              //     },
-              //   ],
-              // },
               {
                 key: 'copy',
+                textSx: { flex: 1 },
                 label: <StyledMenuSelect>复制</StyledMenuSelect>,
                 onClick: () => {
                   if (kb_id) {
@@ -335,27 +211,35 @@ const Header = ({
                 },
               },
               {
+                key: 'front_doc',
+                textSx: { flex: 1 },
+                label: <StyledMenuSelect>前台查看</StyledMenuSelect>,
+                onClick: () => {
+                  if (detail.status !== 2 && !detail.publisher_id) {
+                    message.warning('当前文档未发布，无法查看前台文档');
+                    return;
+                  }
+                  window.open(`${wikiUrl}/node/${detail.id}`, '_blank');
+                },
+              },
+              {
                 key: 'version',
+                textSx: { flex: 1 },
                 label: (
-                  <StyledMenuSelect disabled={!isEnterprise}>
-                    历史版本{' '}
-                    {!isEnterprise && (
-                      <Tooltip title='企业版可用' placement='top' arrow>
-                        <InfoIcon
-                          sx={{ color: 'text.secondary', fontSize: 14 }}
-                        />
-                      </Tooltip>
-                    )}
+                  <StyledMenuSelect disabled={!isBusiness}>
+                    历史版本
+                    <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
                   </StyledMenuSelect>
                 ),
                 onClick: () => {
-                  if (isEnterprise) {
+                  if (isBusiness) {
                     navigate(`/doc/editor/history/${detail.id}`);
                   }
                 },
               },
               {
                 key: 'rename',
+                textSx: { flex: 1 },
                 label: <StyledMenuSelect>重命名</StyledMenuSelect>,
                 onClick: () => {
                   setRenameOpen(true);
@@ -363,6 +247,7 @@ const Header = ({
               },
               {
                 key: 'delete',
+                textSx: { flex: 1 },
                 label: <StyledMenuSelect>删除</StyledMenuSelect>,
                 onClick: () => {
                   setDelOpen(true);
@@ -375,7 +260,7 @@ const Header = ({
                 disabled={!detail.name}
                 sx={{ flexShrink: 0 }}
               >
-                <Icon type='icon-gengduo' />
+                <IconGengduo sx={{ fontSize: 14 }} />
               </IconButton>
             }
           />
@@ -443,7 +328,7 @@ const Header = ({
                 size='small'
                 variant='outlined'
                 disabled={!detail.name}
-                startIcon={<Icon type='icon-daochu' />}
+                startIcon={<IconDaochu sx={{ fontSize: 14 }} />}
               >
                 导出
               </Button>
@@ -519,7 +404,7 @@ const Header = ({
                 size='small'
                 variant='contained'
                 disabled={!detail.name}
-                startIcon={<Icon type='icon-baocun' />}
+                startIcon={<IconBaocun sx={{ fontSize: 14 }} />}
               >
                 保存
               </Button>
@@ -547,6 +432,7 @@ const Header = ({
         }
       />
       <DocDelete
+        type='doc'
         open={delOpen}
         onClose={() => setDelOpen(false)}
         data={[
@@ -559,11 +445,6 @@ const Header = ({
             status: 1,
           },
         ]}
-        refresh={() => {
-          setTimeout(() => {
-            window.close();
-          }, 1500);
-        }}
       />
     </Box>
   );
@@ -578,7 +459,7 @@ const StyledMenuSelect = styled('div')<{ disabled?: boolean }>(
     padding: theme.spacing(0, 2),
     lineHeight: '40px',
     height: 40,
-    width: 106,
+    minWidth: 106,
     borderRadius: '5px',
     color: disabled ? theme.palette.text.secondary : theme.palette.text.primary,
     cursor: disabled ? 'not-allowed' : 'pointer',

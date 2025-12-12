@@ -2,10 +2,10 @@ package share
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/chaitin/panda-wiki/consts"
 	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/handler"
 	"github.com/chaitin/panda-wiki/log"
@@ -89,6 +89,12 @@ func (h *ShareCommentHandler) CreateComment(c echo.Context) error {
 		return h.NewResponseWithError(c, "failed to validate captcha token", nil)
 	}
 
+	for _, url := range req.PicUrls {
+		if !strings.HasPrefix(url, "/static-file/") {
+			return h.NewResponseWithError(c, "validate param pic_urls failed", err)
+		}
+	}
+
 	remoteIP := c.RealIP()
 
 	// get user info --> no enterprise is nil
@@ -150,7 +156,7 @@ func (h *ShareCommentHandler) GetCommentList(c echo.Context) error {
 	}
 
 	// 查询数据库获取所有评论-->0 所有， 1，2 为需要审核的评论
-	commentsList, err := h.usecase.GetCommentListByNodeID(ctx, nodeID, consts.GetLicenseEdition(c))
+	commentsList, err := h.usecase.GetCommentListByNodeID(ctx, nodeID)
 	if err != nil {
 		return h.NewResponseWithError(c, "failed to get comment list", err)
 	}

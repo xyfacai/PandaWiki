@@ -1,11 +1,11 @@
 import { updateKnowledgeBase, UpdateKnowledgeBaseData } from '@/api';
 import FileText from '@/components/UploadFile/FileText';
+import { DomainKnowledgeBaseDetail } from '@/request/types';
+import { message } from '@ctzhian/ui';
 import { Box, Checkbox, Stack, TextField } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { message } from '@ctzhian/ui';
-import { DomainKnowledgeBaseDetail } from '@/request/types';
-import { SettingCardItem, FormItem } from './Common';
+import { FormItem, SettingCardItem } from './Common';
 
 // 验证规则常量
 const VALIDATION_RULES = {
@@ -91,6 +91,7 @@ const CardListen = ({
       },
     }).then(() => {
       message.success('更新成功');
+      setIsEdit(false);
       refresh();
     });
   });
@@ -107,7 +108,7 @@ const CardListen = ({
 
   return (
     <SettingCardItem title='服务监听方式' isEdit={isEdit} onSubmit={onSubmit}>
-      <FormItem label='域名'>
+      <FormItem label='域名或 IP'>
         <Controller
           control={control}
           name='domain'
@@ -116,7 +117,7 @@ const CardListen = ({
             <TextField
               {...field}
               fullWidth
-              label='域名'
+              label='域名或 IP'
               onChange={e => {
                 field.onChange(e.target.value);
                 setIsEdit(true);

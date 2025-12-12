@@ -3,19 +3,19 @@ import {
   DomainAppDetailResp,
   DomainKnowledgeBaseDetail,
 } from '@/request/types';
+import { Box } from '@mui/material';
 import { useEffect, useState } from 'react';
 import CardAuth from './CardAuth';
 import CardBasicInfo from './CardBasicInfo';
 import CardCatalog from './CardCatalog';
 import CardCustom from './CardCustom';
-import CardFooter from './CardFooter';
 import CardListen from './CardListen';
 import CardProxy from './CardProxy';
 import CardStyle from './CardStyle';
 import CardWebCustomCode from './CardWebCustomCode';
 import CardWebSEO from './CardWebSEO';
-import CardWebWelcome from './CardWebWelcome';
-import { SettingCard } from './Common';
+import CardQaCopyright from './CardQaCopyright';
+import CardWebStats from './CardWebStats';
 
 interface CardWebProps {
   kb: DomainKnowledgeBaseDetail;
@@ -37,12 +37,26 @@ const CardWeb = ({ kb, refresh }: CardWebProps) => {
   if (!info?.id) return <></>;
 
   return (
-    <SettingCard title='门户网站'>
-      <CardListen kb={kb} refresh={refresh} />
-      <CardProxy kb={kb} refresh={refresh} />
-      <CardBasicInfo kb={kb} refresh={refresh} />
-      <CardCustom></CardCustom>
-      <CardAuth kb={kb} refresh={refresh} />
+    <Box
+      sx={{
+        width: 1000,
+        margin: 'auto',
+        pb: 4,
+      }}
+    >
+      <CardCustom
+        kb={kb}
+        refresh={value => {
+          setInfo({
+            ...info,
+            settings: {
+              ...info.settings,
+              ...value,
+            },
+          });
+        }}
+        info={info}
+      />
       <CardStyle
         id={info.id}
         data={info}
@@ -61,19 +75,22 @@ const CardWeb = ({ kb, refresh }: CardWebProps) => {
           });
         }}
       />
-      {/* <CardWebHeader
-        id={info.id}
+      <CardListen kb={kb} refresh={refresh} />
+      <CardProxy kb={kb} refresh={refresh} />
+      <CardBasicInfo kb={kb} refresh={refresh} />
+      <CardQaCopyright
         data={info}
         refresh={value => {
           setInfo({
             ...info,
             settings: {
               ...info.settings,
-              ...value,
+              conversation_setting: value,
             },
           });
         }}
-      /> */}
+      />
+      <CardAuth kb={kb} refresh={refresh} />
       <CardCatalog
         id={info.id}
         data={info}
@@ -90,35 +107,7 @@ const CardWeb = ({ kb, refresh }: CardWebProps) => {
           });
         }}
       />
-      {/* <CardFooter
-        id={info.id}
-        data={info}
-        refresh={value => {
-          setInfo({
-            ...info,
-            settings: {
-              ...info.settings,
-              footer_settings: {
-                ...info.settings?.footer_settings,
-                ...value,
-              },
-            },
-          });
-        }}
-      /> */}
-      <CardWebWelcome
-        id={info.id}
-        data={info}
-        refresh={value => {
-          setInfo({
-            ...info,
-            settings: {
-              ...info.settings,
-              ...value,
-            },
-          });
-        }}
-      />
+
       <CardWebSEO
         id={info.id}
         data={info}
@@ -146,7 +135,23 @@ const CardWeb = ({ kb, refresh }: CardWebProps) => {
           });
         }}
       />
-    </SettingCard>
+      <CardWebStats
+        id={info.id}
+        data={info}
+        refresh={value => {
+          setInfo({
+            ...info,
+            settings: {
+              ...info.settings,
+              stats_setting: {
+                ...info.settings?.stats_setting,
+                ...value,
+              },
+            },
+          });
+        }}
+      />
+    </Box>
   );
 };
 export default CardWeb;

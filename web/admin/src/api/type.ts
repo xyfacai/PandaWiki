@@ -1,5 +1,8 @@
 import { AppType, IconMap, ModelProvider } from '@/constant/enums';
-import { DomainNodePermissions } from '@/request/types';
+import {
+  ConstsNodeRagInfoStatus,
+  DomainNodePermissions,
+} from '@/request/types';
 
 export type Paging = {
   page?: number;
@@ -191,7 +194,10 @@ export interface ITreeItem {
   order?: number;
   emoji?: string;
   parentId?: string;
+  content_type?: string;
   summary?: string;
+  rag_status?: ConstsNodeRagInfoStatus;
+  rag_message?: string;
   children?: ITreeItem[];
   type: 1 | 2;
   isEditting?: boolean;
@@ -199,6 +205,7 @@ export interface ITreeItem {
   updated_at?: string;
   status?: 1 | 2;
   permissions?: DomainNodePermissions;
+  collapsed?: boolean;
 }
 
 export interface NodeReleaseItem {
@@ -316,7 +323,6 @@ export type WelcomeSetting = {
 export type SEOSetting = {
   keyword: string;
   desc: string;
-  auto_sitemap: boolean;
 };
 
 export type CustomCodeSetting = {
@@ -440,7 +446,7 @@ export type AppConfigEditData = {
 // =============================================》model
 
 export type GetModelNameData = {
-  type: 'chat' | 'embedding' | 'rerank' | 'analysis';
+  type: 'chat' | 'embedding' | 'rerank' | 'analysis' | 'analysis-vl';
   provider: keyof typeof ModelProvider | '';
   api_header: string;
   api_key: string;
@@ -581,48 +587,13 @@ export type ChatConversationItem = {
 export type ChatConversationPair = {
   user: string;
   assistant: string;
+  thinking_content: string;
   created_at: string;
   info: {
     feedback_content: string;
     feedback_type: number;
     score: number;
   };
-};
-
-export type ImportDocType =
-  | 'URL'
-  | 'RSS'
-  | 'Sitemap'
-  | 'OfflineFile'
-  | 'Notion'
-  | 'Epub'
-  | 'Wiki.js'
-  | 'Yuque'
-  | 'Siyuan'
-  | 'MinDoc'
-  | 'Feishu'
-  | 'Confluence';
-
-export type ImportDocProps = {
-  parentId?: string | null;
-  open: boolean;
-  size?: number;
-  refresh?: () => void;
-  onCancel: () => void;
-};
-
-export type ImportDocListItem = {
-  content: string;
-  title: string;
-  url: string;
-  success: -1 | 0 | 1;
-  id: string;
-};
-
-export type ImportDocByFeishuFormData = {
-  app_id: string;
-  app_secret: string;
-  user_access_token: string;
 };
 
 // ============================================》stat

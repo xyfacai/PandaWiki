@@ -31,32 +31,51 @@ const (
 	NodeStatusReleased NodeStatus = 2
 )
 
+const (
+	ContentTypeMD   string = "md"
+	ContentTypeHTML string = "html"
+)
+
 // table: nodes
 type Node struct {
-	ID string `json:"id" gorm:"primaryKey"`
-
-	KBID string `json:"kb_id" gorm:"index"`
-
-	Type NodeType `json:"type"`
-
-	Status NodeStatus `json:"status"`
-
-	Name    string   `json:"name"`
-	Content string   `json:"content"`
-	Meta    NodeMeta `json:"meta" gorm:"type:jsonb"` // summary
-
-	ParentID string  `json:"parent_id"`
-	Position float64 `json:"position"`
-
-	DocID     string    `json:"doc_id"` // DEPRECATED: for rag service
-	CreatorId string    `json:"creator_id"`
-	EditorId  string    `json:"editor_id"`
-	EditTime  time.Time `json:"edit_time"`
-
+	ID          string          `json:"id" gorm:"primaryKey"`
+	KBID        string          `json:"kb_id" gorm:"index"`
+	Type        NodeType        `json:"type"`
+	Status      NodeStatus      `json:"status"`
+	RagInfo     RagInfo         `json:"rag_info" gorm:"type:jsonb"`
+	Name        string          `json:"name"`
+	Content     string          `json:"content"`
+	Meta        NodeMeta        `json:"meta" gorm:"type:jsonb"` // summary
+	ParentID    string          `json:"parent_id"`
+	Position    float64         `json:"position"`
+	DocID       string          `json:"doc_id"` // DEPRECATED: for rag service
+	CreatorId   string          `json:"creator_id"`
+	EditorId    string          `json:"editor_id"`
+	EditTime    time.Time       `json:"edit_time"`
 	Permissions NodePermissions `json:"permissions" gorm:"type:jsonb"`
+	CreatedAt   time.Time       `json:"created_at"`
+	UpdatedAt   time.Time       `json:"updated_at"`
+}
 
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+func (Node) TableName() string {
+	return "nodes"
+}
+
+type RagInfo struct {
+	Status  consts.NodeRagInfoStatus `json:"status"`
+	Message string                   `json:"message"`
+}
+
+func (d *RagInfo) Value() (driver.Value, error) {
+	return json.Marshal(d)
+}
+
+func (d *RagInfo) Scan(value any) error {
+	bytes, ok := value.([]byte)
+	if !ok {
+		return errors.New(fmt.Sprint("invalid node meta type:", value))
+	}
+	return json.Unmarshal(bytes, d)
 }
 
 type NodePermissions struct {
@@ -99,8 +118,9 @@ type NodeGroupDetail struct {
 }
 
 type NodeMeta struct {
-	Summary string `json:"summary"`
-	Emoji   string `json:"emoji"`
+	Summary     string `json:"summary"`
+	Emoji       string `json:"emoji"`
+	ContentType string `json:"content_type"`
 }
 
 func (d *NodeMeta) Value() (driver.Value, error) {
@@ -123,7 +143,9 @@ type CreateNodeReq struct {
 	Name    string `json:"name" validate:"required"`
 	Content string `json:"content"`
 
-	Emoji string `json:"emoji"`
+	Emoji       string  `json:"emoji"`
+	Summary     *string `json:"summary"`
+	ContentType *string `json:"content_type"`
 
 	MaxNode int `json:"-"`
 
@@ -139,9 +161,11 @@ type NodeListItemResp struct {
 	ID          string          `json:"id"`
 	Type        NodeType        `json:"type"`
 	Status      NodeStatus      `json:"status"`
+	RagInfo     RagInfo         `json:"rag_info"`
 	Name        string          `json:"name"`
 	Summary     string          `json:"summary"`
 	Emoji       string          `json:"emoji"`
+	ContentType string          `json:"content_type"`
 	Position    float64         `json:"position"`
 	ParentID    string          `json:"parent_id"`
 	CreatedAt   time.Time       `json:"created_at"`
@@ -150,6 +174,7 @@ type NodeListItemResp struct {
 	EditorId    string          `json:"editor_id"`
 	Creator     string          `json:"creator"`
 	Editor      string          `json:"editor"`
+	PublisherId string          `json:"publisher_id" gorm:"-"`
 	Permissions NodePermissions `json:"permissions" gorm:"type:jsonb"`
 }
 
@@ -164,10 +189,12 @@ type NodeContentChunk struct {
 }
 
 type RankedNodeChunks struct {
-	NodeID      string
-	NodeName    string
-	NodeSummary string
-	Chunks      []*NodeContentChunk
+	NodeID        string
+	NodeName      string
+	NodeSummary   string
+	NodeEmoji     string
+	NodePathNames []string
+	Chunks        []*NodeContentChunk
 }
 
 func (n *RankedNodeChunks) GetURL(baseURL string) string {
@@ -182,9 +209,11 @@ type ChunkListItemResp struct {
 }
 
 type NodeContentChunkSSE struct {
-	NodeID  string `json:"node_id"`
-	Name    string `json:"name"`
-	Summary string `json:"summary"`
+	NodeID        string   `json:"node_id"`
+	Name          string   `json:"name"`
+	Summary       string   `json:"summary"`
+	Emoji         string   `json:"emoji"`
+	NodePathNames []string `json:"node_path_names"`
 }
 
 type RecommendNodeListResp struct {
@@ -206,13 +235,14 @@ type NodeActionReq struct {
 }
 
 type UpdateNodeReq struct {
-	ID       string   `json:"id" validate:"required"`
-	KBID     string   `json:"kb_id" validate:"required"`
-	Name     *string  `json:"name"`
-	Content  *string  `json:"content"`
-	Emoji    *string  `json:"emoji"`
-	Summary  *string  `json:"summary"`
-	Position *float64 `json:"position"`
+	ID          string   `json:"id" validate:"required"`
+	KBID        string   `json:"kb_id" validate:"required"`
+	Name        *string  `json:"name"`
+	Content     *string  `json:"content"`
+	Emoji       *string  `json:"emoji"`
+	Summary     *string  `json:"summary"`
+	Position    *float64 `json:"position"`
+	ContentType *string  `json:"content_type"`
 }
 
 type ShareNodeListItemResp struct {
@@ -222,8 +252,22 @@ type ShareNodeListItemResp struct {
 	ParentID    string          `json:"parent_id"`
 	Position    float64         `json:"position"`
 	Emoji       string          `json:"emoji"`
+	Meta        NodeMeta        `json:"meta"`
 	UpdatedAt   time.Time       `json:"updated_at"`
 	Permissions NodePermissions `json:"permissions" gorm:"type:jsonb"`
+}
+
+type ShareNodeDetailItem struct {
+	ID          string                 `json:"id"`
+	Name        string                 `json:"name"`
+	Type        NodeType               `json:"type"`
+	ParentID    string                 `json:"parent_id"`
+	Position    float64                `json:"position"`
+	Emoji       string                 `json:"emoji"`
+	Meta        NodeMeta               `json:"meta"`
+	UpdatedAt   time.Time              `json:"updated_at"`
+	Permissions NodePermissions        `json:"permissions" gorm:"type:jsonb"`
+	Children    []*ShareNodeDetailItem `json:"children,omitempty"`
 }
 
 func (n *ShareNodeListItemResp) GetURL(baseURL string) string {
@@ -250,10 +294,12 @@ type GetRecommendNodeListReq struct {
 
 // table: node_releases
 type NodeRelease struct {
-	ID     string `json:"id" gorm:"primaryKey"`
-	KBID   string `json:"kb_id" gorm:"index"`
-	NodeID string `json:"node_id" gorm:"index"`
-	DocID  string `json:"doc_id" gorm:"index"` // for rag service
+	ID          string `json:"id" gorm:"primaryKey"`
+	KBID        string `json:"kb_id" gorm:"index"`
+	PublisherId string `json:"publisher_id"`
+	EditorId    string `json:"editor_id"`
+	NodeID      string `json:"node_id" gorm:"index"`
+	DocID       string `json:"doc_id" gorm:"index"` // for rag service
 
 	Type NodeType `json:"type"`
 
@@ -268,8 +314,30 @@ type NodeRelease struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+func (NodeRelease) TableName() string {
+	return "node_releases"
+}
+
+// NodeReleaseWithDirPath extends NodeRelease with directory path information
+type NodeReleaseWithDirPath struct {
+	*NodeRelease
+	Path string `json:"path"`
+}
+
 type BatchMoveReq struct {
 	IDs      []string `json:"ids" validate:"required"`
 	KBID     string   `json:"kb_id" validate:"required"`
 	ParentID string   `json:"parent_id"`
+}
+
+type NodeCreateInfo struct {
+	ID        string `json:"id"`
+	Account   string `json:"account"`
+	CreatorId string `json:"creator_id"`
+}
+
+type NodeReleaseWithPublisher struct {
+	ID               string `json:"id" gorm:"primaryKey"`
+	PublisherId      string `json:"publisher_id"`
+	PublisherAccount string `json:"publisher_account"`
 }

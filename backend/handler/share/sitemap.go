@@ -36,13 +36,6 @@ func (h *ShareSitemapHandler) GetSitemap(c echo.Context) error {
 	if kbID == "" {
 		return h.NewResponseWithError(c, "kb_id is required", nil)
 	}
-	appInfo, err := h.appUsecase.GetWebAppInfo(c.Request().Context(), kbID)
-	if err != nil {
-		return h.NewResponseWithError(c, "web app not found", err)
-	}
-	if !appInfo.Settings.AutoSitemap {
-		return h.NewResponseWithError(c, "未开启自动生成站点地图功能", nil)
-	}
 
 	xml, err := h.sitemapUsecase.GetSitemap(c.Request().Context(), kbID)
 	if err != nil {

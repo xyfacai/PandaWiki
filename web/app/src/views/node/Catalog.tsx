@@ -1,12 +1,10 @@
 'use client';
-import { IconMulu } from '@/components/icons';
+import { IconMulu } from '@panda-wiki/icons';
 import { useStore } from '@/provider';
-import { filterTreeBySearch } from '@/utils';
 import { addExpandState } from '@/utils/drag';
 import { Box, Stack, SxProps, Tooltip } from '@mui/material';
-import { useDebounce } from 'ahooks';
 import { useParams } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import CatalogFolder from './CatalogFolder';
 
 const Catalog = ({ sx }: { sx?: SxProps }) => {
@@ -18,25 +16,22 @@ const Catalog = ({ sx }: { sx?: SxProps }) => {
     catalogShow,
     setCatalogShow,
     catalogWidth,
-    setCatalogWidth,
-    tree: initialTree,
+    tree = [],
+    setTree,
   } = useStore();
-
-  const [searchTerm, setSearchTerm] = useState('');
-  const debouncedSearchTerm = useDebounce(searchTerm, { wait: 300 });
 
   const catalogSetting = kbDetail?.settings?.catalog_settings;
   const catalogFolderExpand = catalogSetting?.catalog_folder !== 2;
   const docWidth = kbDetail?.settings?.theme_and_style?.doc_width || 'full';
 
-  const tree = useMemo(() => {
+  useEffect(() => {
     const { tree: originalTree } = addExpandState(
-      initialTree || [],
+      tree || [],
       id as string,
       catalogFolderExpand,
     );
-    return filterTreeBySearch(originalTree, debouncedSearchTerm);
-  }, [debouncedSearchTerm]);
+    setTree?.(originalTree);
+  }, []);
 
   const listRef = useRef<HTMLDivElement>(null);
   const hasScrolledRef = useRef(false);
@@ -47,8 +42,27 @@ const Catalog = ({ sx }: { sx?: SxProps }) => {
     // 等待子项渲染完成后再滚动
     const scrollToActive = () => {
       const el = document.getElementById(`catalog-item-${id}`);
-      if (el) {
-        el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      const container = listRef.current;
+      if (el && container) {
+        // 计算目标元素相对于滚动容器的位置
+        const containerRect = container.getBoundingClientRect();
+        const elementRect = el.getBoundingClientRect();
+
+        // 计算目标元素在容器中的相对位置
+        const elementTop =
+          elementRect.top - containerRect.top + container.scrollTop;
+        const containerHeight = container.clientHeight;
+        const elementHeight = el.offsetHeight;
+
+        // 计算滚动位置，让元素居中显示
+        const scrollTop = elementTop - containerHeight / 2 + elementHeight / 2;
+
+        // 平滑滚动到目标位置
+        container.scrollTo({
+          top: scrollTop,
+          behavior: 'smooth',
+        });
+
         hasScrolledRef.current = true;
       }
     };
@@ -147,11 +161,7 @@ const Catalog = ({ sx }: { sx?: SxProps }) => {
         ref={listRef}
       >
         {tree.map(item => (
-          <CatalogFolder
-            key={item.id}
-            item={item}
-            searchTerm={debouncedSearchTerm}
-          />
+          <CatalogFolder key={item.id} item={item} />
         ))}
       </Stack>
     </Stack>

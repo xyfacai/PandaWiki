@@ -1,12 +1,12 @@
 import { ITreeItem, NodeListFilterData } from '@/api';
-import { getApiV1NodeList } from '@/request/Node';
 import Nodata from '@/assets/images/nodata.png';
 import DragTree from '@/components/Drag/DragTree';
+import { getApiV1NodeList } from '@/request/Node';
 import { useAppSelector } from '@/store';
 import { convertToTree } from '@/utils/drag';
 import { filterEmptyFolders } from '@/utils/tree';
-import { Box, Skeleton, Stack } from '@mui/material';
 import { Modal } from '@ctzhian/ui';
+import { Box, Skeleton, Stack } from '@mui/material';
 import { useCallback, useEffect, useState } from 'react';
 
 interface AddRecommendContentProps {
@@ -14,6 +14,7 @@ interface AddRecommendContentProps {
   selected: string[];
   onChange: (value: string[]) => void;
   onClose: () => void;
+  disabled?: (value: ITreeItem) => boolean;
 }
 
 const AddRecommendContent = ({
@@ -21,6 +22,7 @@ const AddRecommendContent = ({
   selected,
   onChange,
   onClose,
+  disabled,
 }: AddRecommendContentProps) => {
   const [list, setList] = useState<ITreeItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -76,6 +78,7 @@ const AddRecommendContent = ({
           onSelectChange={value => {
             setSelectedIds(value);
           }}
+          disabled={disabled}
           relativeSelect={false}
         />
       ) : (

@@ -17,18 +17,17 @@ import {
 import { getShareV1NodeList } from '@/request/ShareNode';
 import { clearCookie } from '@/utils/cookie';
 
+import {
+  IconKoulingrenzheng,
+  IconLDAP,
+  IconMima,
+  IconZhanghao,
+  IconFeishu,
+} from '@panda-wiki/icons';
+
 import Logo from '@/assets/images/logo.png';
 import { FooterProvider } from '@/components/footer';
-import {
-  IconCAS,
-  IconDingDing,
-  IconFeishu,
-  IconLDAP,
-  IconLock,
-  IconPassword,
-  IconQiyeweixin,
-  IconUser,
-} from '@/components/icons';
+import { IconCAS, IconDingDing, IconQiyeweixin } from '@/components/icons';
 import { IconGitHub1 } from '@panda-wiki/icons';
 import { useStore } from '@/provider';
 import {
@@ -48,6 +47,20 @@ import { message } from '@ctzhian/ui';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { useBasePath } from '@/hooks';
+import { getImagePath } from '@/utils/getImagePath';
+function isWeComByUA() {
+  if (typeof navigator === 'undefined') {
+    return false;
+  }
+  const ua = navigator.userAgent.toLowerCase();
+  // 1. 必须包含 MicroMessenger (表示微信/企业微信内核)
+  // 2. 必须包含 wxwork 或 wecom (表示企业微信)
+  return (
+    ua.includes('micromessenger') &&
+    (ua.includes('wxwork') || ua.includes('wecom'))
+  );
+}
 
 export default function Login() {
   const searchParams = useSearchParams();
@@ -58,10 +71,11 @@ export default function Login() {
   const [licenseEdition, setLicenseEdition] = useState<ConstsLicenseEdition>();
   const [sourceType, setSourceType] = useState<ConstsSourceType>();
   const { kbDetail, themeMode, mobile = false, setNodeList } = useStore();
+  const basePath = useBasePath();
+
   const redirectUrl =
     typeof window !== 'undefined'
-      ? window.location.origin +
-        decodeURIComponent(searchParams.get('redirect') || '')
+      ? `${window.location.origin}${basePath}${decodeURIComponent(searchParams.get('redirect') || '')}`
       : '';
 
   const handleLogin = async () => {
@@ -126,6 +140,7 @@ export default function Login() {
     clearCookie();
     postShareProV1AuthWecom({
       redirect_url: redirectUrl,
+      is_app: isWeComByUA(),
     }).then(res => {
       window.location.href = res.url || '/';
     });
@@ -226,7 +241,7 @@ export default function Login() {
             <Stack alignItems='center' gap={1} sx={{ mb: 5 }}>
               {kbDetail?.settings?.icon ? (
                 <img
-                  src={kbDetail?.settings?.icon}
+                  src={getImagePath(kbDetail?.settings?.icon, basePath)}
                   alt='logo'
                   width={40}
                   height={40}
@@ -255,7 +270,7 @@ export default function Login() {
                     input: {
                       startAdornment: (
                         <InputAdornment position='start'>
-                          <IconLock
+                          <IconKoulingrenzheng
                             sx={{ fontSize: 16, width: 24, height: 16 }}
                           />
                         </InputAdornment>
@@ -376,7 +391,7 @@ export default function Login() {
                               input: {
                                 startAdornment: (
                                   <InputAdornment position='start'>
-                                    <IconUser
+                                    <IconZhanghao
                                       sx={{
                                         fontSize: 16,
                                         width: 24,
@@ -401,7 +416,7 @@ export default function Login() {
                               input: {
                                 startAdornment: (
                                   <InputAdornment position='start'>
-                                    <IconPassword
+                                    <IconMima
                                       sx={{
                                         fontSize: 16,
                                         width: 24,

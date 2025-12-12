@@ -1,4 +1,4 @@
-import { Box, Popover, Stack, SxProps, Theme, Typography } from '@mui/material';
+import { Box, Popover, Stack, SxProps, Theme } from '@mui/material';
 import React from 'react';
 
 interface Item {
@@ -13,7 +13,7 @@ interface Item {
   onClick?: () => void;
 }
 
-interface CascaderProps {
+export interface CascaderProps {
   id?: string;
   arrowIcon?: React.ReactNode;
   list: Item[];
@@ -135,9 +135,7 @@ const Cascader: React.FC<CascaderProps> = ({
               >
                 <Stack alignItems='center' gap={1} direction='row'>
                   {item.icon}
-                  <Typography sx={{ flexShrink: 0, ...item.textSx }}>
-                    {item.label}
-                  </Typography>
+                  <Box sx={{ flexShrink: 0, ...item.textSx }}>{item.label}</Box>
                   {item.extra}
                   {item.children?.length ? arrowIcon : null}
                 </Stack>
@@ -168,11 +166,9 @@ const Cascader: React.FC<CascaderProps> = ({
                           >
                             <Stack alignItems='center' gap={1} direction='row'>
                               {child.icon}
-                              <Typography
-                                sx={{ flexShrink: 0, ...child.textSx }}
-                              >
+                              <Box sx={{ flexShrink: 0, ...child.textSx }}>
                                 {child.label}
-                              </Typography>
+                              </Box>
                               {child.extra}
                             </Stack>
                           </Box>

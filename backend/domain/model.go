@@ -19,10 +19,11 @@ const (
 type ModelType string
 
 const (
-	ModelTypeChat      ModelType = "chat"
-	ModelTypeEmbedding ModelType = "embedding"
-	ModelTypeRerank    ModelType = "rerank"
-	ModelTypeAnalysis  ModelType = "analysis"
+	ModelTypeChat       ModelType = "chat"
+	ModelTypeEmbedding  ModelType = "embedding"
+	ModelTypeRerank     ModelType = "rerank"
+	ModelTypeAnalysis   ModelType = "analysis"
+	ModelTypeAnalysisVL ModelType = "analysis-vl"
 )
 
 type Model struct {
@@ -53,13 +54,14 @@ func (m *Model) ToModelkitModel() (*modelkitDomain.ModelMetadata, error) {
 	modelType := modelkitConsts.ParseModelType(string(m.Type))
 
 	return &modelkitDomain.ModelMetadata{
-		Provider:   provider,
-		ModelName:  m.Model,
-		APIKey:     m.APIKey,
-		BaseURL:    m.BaseURL,
-		APIVersion: m.APIVersion,
-		APIHeader:  m.APIHeader,
-		ModelType:  modelType,
+		Provider:    provider,
+		ModelName:   m.Model,
+		APIKey:      m.APIKey,
+		BaseURL:     m.BaseURL,
+		APIVersion:  m.APIVersion,
+		APIHeader:   m.APIHeader,
+		ModelType:   modelType,
+		Temperature: m.Parameters.Temperature,
 	}, nil
 }
 
@@ -95,15 +97,17 @@ type UpdateModelReq struct {
 
 type CheckModelReq struct {
 	BaseModelInfo
+	Parameters *ModelParam `json:"parameters"`
 }
 
 type ModelParam struct {
-	ContextWindow      int  `json:"context_window"`
-	MaxTokens          int  `json:"max_tokens"`
-	R1Enabled          bool `json:"r1_enabled"`
-	SupportComputerUse bool `json:"support_computer_use"`
-	SupportImages      bool `json:"support_images"`
-	SupportPromptCache bool `json:"support_prompt_cache"`
+	ContextWindow      int      `json:"context_window"`
+	MaxTokens          int      `json:"max_tokens"`
+	R1Enabled          bool     `json:"r1_enabled"`
+	SupportComputerUse bool     `json:"support_computer_use"`
+	SupportImages      bool     `json:"support_images"`
+	SupportPromptCache bool     `json:"support_prompt_cache"`
+	Temperature        *float32 `json:"temperature"`
 }
 
 // Value implements the driver.Valuer interface for GORM
@@ -134,7 +138,7 @@ type BaseModelInfo struct {
 	APIKey     string        `json:"api_key"`
 	APIHeader  string        `json:"api_header"`
 	APIVersion string        `json:"api_version"` // for azure openai
-	Type       ModelType     `json:"type" validate:"required,oneof=chat embedding rerank analysis"`
+	Type       ModelType     `json:"type" validate:"required,oneof=chat embedding rerank analysis analysis-vl"`
 }
 
 type CheckModelResp struct {
@@ -147,7 +151,7 @@ type GetProviderModelListReq struct {
 	BaseURL   string    `json:"base_url" query:"base_url" validate:"required"`
 	APIKey    string    `json:"api_key" query:"api_key"`
 	APIHeader string    `json:"api_header" query:"api_header"`
-	Type      ModelType `json:"type" query:"type" validate:"required,oneof=chat embedding rerank analysis"`
+	Type      ModelType `json:"type" query:"type" validate:"required,oneof=chat embedding rerank analysis analysis-vl"`
 }
 
 type GetProviderModelListResp struct {
@@ -160,4 +164,14 @@ type ProviderModelListItem struct {
 
 type ActivateModelReq struct {
 	ModelID string `json:"model_id" validate:"required"`
+}
+
+type SwitchModeReq struct {
+	Mode           string `json:"mode" validate:"required,oneof=manual auto"`
+	AutoModeAPIKey string `json:"auto_mode_api_key"` // 百智云 API Key
+	ChatModel      string `json:"chat_model"`        // 自定义对话模型名称
+}
+
+type SwitchModeResp struct {
+	Message string `json:"message"`
 }

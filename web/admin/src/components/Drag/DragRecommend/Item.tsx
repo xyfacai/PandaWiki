@@ -1,9 +1,10 @@
-import { postApiV1NodeSummary } from '@/request/Node';
 import { DomainRecommendNodeListResp } from '@/request/types';
 import { useAppSelector } from '@/store';
+import { Ellipsis } from '@ctzhian/ui';
+import { IconWenjianjia, IconWenjian, IconShanchu2 } from '@panda-wiki/icons';
 import { Box, IconButton, Stack } from '@mui/material';
-import { Ellipsis, Icon, message } from '@ctzhian/ui';
-import { CSSProperties, forwardRef, HTMLAttributes, useState } from 'react';
+import { IconDrag } from '@panda-wiki/icons';
+import { CSSProperties, forwardRef, HTMLAttributes } from 'react';
 
 export type ItemProps = HTMLAttributes<HTMLDivElement> & {
   item: DomainRecommendNodeListResp;
@@ -38,19 +39,6 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
       minWidth: '0px',
       ...style,
     };
-    const [loading, setLoading] = useState(false);
-
-    const handleCreateSummary = () => {
-      setLoading(true);
-      postApiV1NodeSummary({ ids: [item.id!], kb_id })
-        .then(() => {
-          message.success('生成摘要成功');
-          refresh?.();
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-    };
 
     return (
       <Box ref={ref} style={inlineStyles} {...props}>
@@ -76,10 +64,15 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
             }}
           >
             <Stack direction={'row'} alignItems={'center'} gap={1}>
-              <Icon
-                type={item.type === 1 ? 'icon-wenjianjia' : 'icon-wenjian'}
-                sx={{ fontSize: 14, color: '#2f80f7', flexShrink: 0 }}
-              />
+              {item.type === 1 ? (
+                <IconWenjianjia
+                  sx={{ fontSize: 14, color: '#2f80f7', flexShrink: 0 }}
+                />
+              ) : (
+                <IconWenjian
+                  sx={{ fontSize: 14, color: '#2f80f7', flexShrink: 0 }}
+                />
+              )}
               <Ellipsis sx={{ flex: 1, width: 0, lineHeight: '32px' }}>
                 {item.name}
               </Ellipsis>
@@ -102,11 +95,6 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
                 暂无摘要，可前往文档页生成并发布
               </Box>
             ) : null}
-            {/* : item.type === 2 ? <Button size='small' loading={loading} sx={{
-            height: '21px',
-            px: 0,
-            ml: '18px',
-          }} onClick={handleCreateSummary}>生成摘要</Button> : null} */}
             {item.recommend_nodes && item.recommend_nodes.length > 0 && (
               <Stack sx={{ fontSize: 14, color: 'text.tertiary', pl: '20px' }}>
                 {item.recommend_nodes
@@ -114,12 +102,15 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
                   .slice(0, 4)
                   .map(it => (
                     <Stack direction={'row'} alignItems={'center'} gap={1}>
-                      <Icon
-                        type={
-                          it.type === 1 ? 'icon-wenjianjia' : 'icon-wenjian'
-                        }
-                        sx={{ fontSize: 14, color: '#2f80f7', flexShrink: 0 }}
-                      />
+                      {it.type === 1 ? (
+                        <IconWenjianjia
+                          sx={{ fontSize: 14, color: '#2f80f7', flexShrink: 0 }}
+                        />
+                      ) : (
+                        <IconWenjian
+                          sx={{ fontSize: 14, color: '#2f80f7', flexShrink: 0 }}
+                        />
+                      )}
                       <Ellipsis sx={{ flex: 1, width: 0 }}>{it.name}</Ellipsis>
                     </Stack>
                   ))}
@@ -138,7 +129,7 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
                 ':hover': { color: 'error.main' },
               }}
             >
-              <Icon type='icon-icon_tool_close' />
+              <IconShanchu2 sx={{ fontSize: '12px' }} />
             </IconButton>
             <IconButton
               size='small'
@@ -149,7 +140,7 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
               }}
               {...dragHandleProps}
             >
-              <Icon type='icon-drag' />
+              <IconDrag sx={{ fontSize: '18px' }} />
             </IconButton>
           </Stack>
         </Stack>

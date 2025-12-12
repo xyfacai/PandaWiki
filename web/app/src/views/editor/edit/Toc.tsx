@@ -1,4 +1,3 @@
-import { Box, Drawer, IconButton, Stack } from '@mui/material';
 import {
   H1Icon,
   H2Icon,
@@ -8,13 +7,17 @@ import {
   H6Icon,
   TocList,
 } from '@ctzhian/tiptap';
-import { Ellipsis, Icon } from '@ctzhian/ui';
+import { Ellipsis } from '@ctzhian/ui';
+import { Box, Drawer, IconButton, Stack } from '@mui/material';
 import { useState } from 'react';
+import { IconDingzi, IconIcon_tool_close } from '@panda-wiki/icons';
 
 interface TocProps {
   headings: TocList;
   fixed: boolean;
   setFixed: (fixed: boolean) => void;
+  isMarkdown: boolean;
+  scrollToHeading?: (headingText: string) => void;
 }
 
 const HeadingIcon = [
@@ -28,11 +31,17 @@ const HeadingIcon = [
 
 const HeadingSx = [
   { fontSize: 14, fontWeight: 700, color: 'text.secondary' },
-  { fontSize: 14, fontWeight: 400, color: 'text.auxiliary' },
+  { fontSize: 14, fontWeight: 400, color: 'text.tertiary' },
   { fontSize: 14, fontWeight: 400, color: 'text.disabled' },
 ];
 
-const Toc = ({ headings, fixed, setFixed }: TocProps) => {
+const Toc = ({
+  headings,
+  fixed,
+  setFixed,
+  scrollToHeading,
+  isMarkdown,
+}: TocProps) => {
   const [open, setOpen] = useState(false);
   const levels = Array.from(
     new Set(headings.map(it => it.level).sort((a, b) => a - b)),
@@ -109,7 +118,7 @@ const Toc = ({ headings, fixed, setFixed }: TocProps) => {
           sx={{
             fontSize: 14,
             fontWeight: 'bold',
-            color: 'text.auxiliary',
+            color: 'text.tertiary',
             mb: 1,
             p: 1,
             pb: 0,
@@ -125,10 +134,11 @@ const Toc = ({ headings, fixed, setFixed }: TocProps) => {
               setFixed(!fixed);
             }}
           >
-            <Icon
-              type={!fixed ? 'icon-dingzi' : 'icon-icon_tool_close'}
-              sx={{ fontSize: 18 }}
-            />
+            {!fixed ? (
+              <IconDingzi sx={{ fontSize: 18 }} />
+            ) : (
+              <IconIcon_tool_close sx={{ fontSize: 18 }} />
+            )}
           </IconButton>
         </Stack>
         <Stack
@@ -164,15 +174,40 @@ const Toc = ({ headings, fixed, setFixed }: TocProps) => {
                   onClick={() => {
                     const element = document.getElementById(it.id);
                     if (element) {
-                      const offset = 100;
-                      const elementPosition =
-                        element.getBoundingClientRect().top;
-                      const offsetPosition =
-                        elementPosition + window.pageYOffset - offset;
-                      window.scrollTo({
-                        top: offsetPosition,
-                        behavior: 'smooth',
-                      });
+                      if (isMarkdown) {
+                        const container = document.getElementById(
+                          'markdown-preview-container',
+                        );
+                        if (container) {
+                          const containerRect =
+                            container.getBoundingClientRect();
+                          const elementRect = element.getBoundingClientRect();
+                          const offset = 20; // 顶部偏移
+                          const scrollTop =
+                            container.scrollTop +
+                            elementRect.top -
+                            containerRect.top -
+                            offset;
+                          container.scrollTo({
+                            top: scrollTop,
+                            behavior: 'smooth',
+                          });
+                        }
+                        // 同时滚动 AceEditor
+                        if (scrollToHeading) {
+                          scrollToHeading(it.textContent);
+                        }
+                      } else {
+                        const offset = 100;
+                        const elementPosition =
+                          element.getBoundingClientRect().top;
+                        const offsetPosition =
+                          elementPosition + window.pageYOffset - offset;
+                        window.scrollTo({
+                          top: offsetPosition,
+                          behavior: 'smooth',
+                        });
+                      }
                     }
                   }}
                 >

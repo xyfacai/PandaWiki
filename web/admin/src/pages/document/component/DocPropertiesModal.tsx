@@ -1,33 +1,39 @@
-import { useEffect, useState, useMemo } from 'react';
-import { Form, FormItem } from '@/pages/setting/component/Common';
-import { Modal, Icon, message } from '@ctzhian/ui';
-import { GithubComChaitinPandaWikiProApiAuthV1AuthGroupListItem } from '@/request/pro/types';
-import { DomainNodeListItemResp, DomainNodeType } from '@/request/types';
 import Card from '@/components/Card';
 import DragTree from '@/components/Drag/DragTree';
-import dayjs from 'dayjs';
-import {
-  RadioGroup,
-  Radio,
-  TextField,
-  styled,
-  Stack,
-  Button,
-  Autocomplete,
-  Box,
-} from '@mui/material';
-import { useForm, Controller } from 'react-hook-form';
-import { FormControlLabel } from '@mui/material';
-import { ConstsNodeAccessPerm } from '@/request/types';
+import { Form, FormItem } from '@/pages/setting/component/Common';
 import { postApiV1NodeSummary, putApiV1NodeDetail } from '@/request/Node';
-import { getApiProV1AuthGroupList } from '@/request/pro/AuthGroup';
-import { convertToTree } from '@/utils/drag';
-import { filterEmptyFolders } from '@/utils/tree';
 import {
   getApiV1NodePermission,
   patchApiV1NodePermissionEdit,
 } from '@/request/NodePermission';
+import { getApiProV1AuthGroupList } from '@/request/pro/AuthGroup';
+import { GithubComChaitinPandaWikiProApiAuthV1AuthGroupListItem } from '@/request/pro/types';
+import {
+  ConstsNodeAccessPerm,
+  DomainNodeListItemResp,
+  DomainNodeType,
+} from '@/request/types';
 import { useAppSelector } from '@/store';
+import { convertToTree } from '@/utils/drag';
+import { filterEmptyFolders } from '@/utils/tree';
+import { Icon, Modal, message } from '@ctzhian/ui';
+import {
+  Autocomplete,
+  Box,
+  Button,
+  FormControlLabel,
+  Radio,
+  RadioGroup,
+  Stack,
+  TextField,
+  styled,
+} from '@mui/material';
+import dayjs from 'dayjs';
+import { useEffect, useMemo, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { BUSINESS_VERSION_PERMISSION } from '@/constant/version';
+import { VersionCanUse } from '@/components/VersionMask';
+import { IconShuaxin } from '@panda-wiki/icons';
 
 interface DocPropertiesModalProps {
   open: boolean;
@@ -36,8 +42,6 @@ interface DocPropertiesModalProps {
   isBatch?: boolean;
   data: DomainNodeListItemResp[];
 }
-
-const tips = '(企业版可用)';
 
 const StyledText = styled('div')(({ theme }) => ({
   color: theme.palette.text.secondary,
@@ -50,7 +54,12 @@ const PER_OPTIONS = [
     value: ConstsNodeAccessPerm.NodeAccessPermOpen,
   },
   {
-    label: '部分开放',
+    label: (
+      <Stack direction={'row'} alignItems={'center'}>
+        <span>部分开放</span>
+        <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
+      </Stack>
+    ),
     value: ConstsNodeAccessPerm.NodeAccessPermPartial,
   },
   {
@@ -125,13 +134,13 @@ const DocPropertiesModal = ({
           visitable: values.visitable as ConstsNodeAccessPerm,
           visible: values.visible as ConstsNodeAccessPerm,
         },
-        answerable_groups: isEnterprise
+        answerable_groups: isBusiness
           ? values.answerable_groups.map(item => item.id!)
           : undefined,
-        visitable_groups: isEnterprise
+        visitable_groups: isBusiness
           ? values.visitable_groups.map(item => item.id!)
           : undefined,
-        visible_groups: isEnterprise
+        visible_groups: isBusiness
           ? values.visible_groups.map(item => item.id!)
           : undefined,
       }),
@@ -150,15 +159,15 @@ const DocPropertiesModal = ({
     });
   });
 
-  const isEnterprise = useMemo(() => {
-    return license.edition === 2;
+  const isBusiness = useMemo(() => {
+    return BUSINESS_VERSION_PERMISSION.includes(license.edition!);
   }, [license]);
 
   const tree = filterEmptyFolders(convertToTree(data));
 
   useEffect(() => {
     if (open && data) {
-      if (isEnterprise) {
+      if (isBusiness) {
         getApiProV1AuthGroupList({
           kb_id: kb_id!,
           page: 1,
@@ -182,28 +191,28 @@ const DocPropertiesModal = ({
         }
         setValue(
           'answerable_groups',
-          (res.answerable_groups || []).map(item => ({
+          (res.answerable_groups || []).map((item: any) => ({
             id: item.auth_group_id,
-            name: item.name,
+            path: item.path || item.name,
           })),
         );
         setValue(
           'visitable_groups',
-          (res.visitable_groups || []).map(item => ({
+          (res.visitable_groups || []).map((item: any) => ({
             id: item.auth_group_id,
-            name: item.name,
+            path: item.path || item.name,
           })),
         );
         setValue(
           'visible_groups',
-          (res.visible_groups || []).map(item => ({
+          (res.visible_groups || []).map((item: any) => ({
             id: item.auth_group_id,
-            name: item.name,
+            path: item.path || item.name,
           })),
         );
       });
     }
-  }, [open, data, isEnterprise]);
+  }, [open, data, isBusiness]);
 
   useEffect(() => {
     if (!open) {
@@ -240,7 +249,9 @@ const DocPropertiesModal = ({
           </Box>
           <Card
             sx={{
-              py: 1,
+              p: 2,
+              maxHeight: '300px',
+              overflowY: 'auto',
               bgcolor: 'background.paper3',
               '& .dndkit-drag-handle': {
                 top: '-2px !important',
@@ -297,22 +308,15 @@ const DocPropertiesModal = ({
             name='answerable'
             control={control}
             render={({ field }) => (
-              <RadioGroup row {...field}>
+              <RadioGroup row {...field} sx={{ gap: 2 }}>
                 {PER_OPTIONS.map(option => (
                   <FormControlLabel
                     key={option.value}
                     value={option.value}
                     control={<Radio size='small' />}
-                    label={
-                      option.label +
-                      (!isEnterprise &&
-                      option.value ===
-                        ConstsNodeAccessPerm.NodeAccessPermPartial
-                        ? tips
-                        : '')
-                    }
+                    label={option.label}
                     disabled={
-                      !isEnterprise &&
+                      !isBusiness &&
                       option.value ===
                         ConstsNodeAccessPerm.NodeAccessPermPartial
                     }
@@ -354,22 +358,15 @@ const DocPropertiesModal = ({
             name='visitable'
             control={control}
             render={({ field }) => (
-              <RadioGroup row {...field}>
+              <RadioGroup row {...field} sx={{ gap: 2 }}>
                 {PER_OPTIONS.map(option => (
                   <FormControlLabel
                     key={option.value}
                     value={option.value}
                     control={<Radio size='small' />}
-                    label={
-                      option.label +
-                      (!isEnterprise &&
-                      option.value ===
-                        ConstsNodeAccessPerm.NodeAccessPermPartial
-                        ? tips
-                        : '')
-                    }
+                    label={option.label}
                     disabled={
-                      !isEnterprise &&
+                      !isBusiness &&
                       option.value ===
                         ConstsNodeAccessPerm.NodeAccessPermPartial
                     }
@@ -411,22 +408,15 @@ const DocPropertiesModal = ({
             name='visible'
             control={control}
             render={({ field }) => (
-              <RadioGroup row {...field}>
+              <RadioGroup row {...field} sx={{ gap: 2 }}>
                 {PER_OPTIONS.map(option => (
                   <FormControlLabel
                     key={option.value}
                     value={option.value}
                     control={<Radio size='small' />}
-                    label={
-                      option.label +
-                      (!isEnterprise &&
-                      option.value ===
-                        ConstsNodeAccessPerm.NodeAccessPermPartial
-                        ? tips
-                        : '')
-                    }
+                    label={option.label}
                     disabled={
-                      !isEnterprise &&
+                      !isBusiness &&
                       option.value ===
                         ConstsNodeAccessPerm.NodeAccessPermPartial
                     }
@@ -483,13 +473,13 @@ const DocPropertiesModal = ({
                     onClick={onGenerateSummary}
                     disabled={loading}
                     startIcon={
-                      <Icon
-                        type='icon-shuaxin'
-                        sx={
-                          loading
+                      <IconShuaxin
+                        sx={{
+                          fontSize: '16px !important',
+                          ...(loading
                             ? { animation: 'loadingRotate 1s linear infinite' }
-                            : {}
-                        }
+                            : {}),
+                        }}
                       />
                     }
                   >

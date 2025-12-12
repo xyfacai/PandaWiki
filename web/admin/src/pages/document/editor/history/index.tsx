@@ -8,19 +8,28 @@ import {
 } from '@/request/pro';
 import { useAppSelector } from '@/store';
 import { Editor, useTiptap } from '@ctzhian/tiptap';
-import { Icon } from '@ctzhian/ui';
+import { Ellipsis } from '@ctzhian/ui';
 import {
   alpha,
   Box,
   Divider,
   IconButton,
   Stack,
+  Tooltip,
   useTheme,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
 import { WrapContext } from '..';
 import VersionRollback from '../../component/VersionRollback';
+import {
+  IconMuluzhankai,
+  IconChahao,
+  IconTianjiawendang,
+  IconZiti,
+  IconFabu,
+  IconAShijian2,
+} from '@panda-wiki/icons';
 
 const History = () => {
   const { id = '' } = useParams();
@@ -39,9 +48,23 @@ const History = () => {
   );
   const [characterCount, setCharacterCount] = useState(0);
 
+  const [isMarkdown, setIsMarkdown] = useState(false);
+
   const editorRef = useTiptap({
     content: '',
     editable: false,
+    baseUrl: window.__BASENAME__ || '',
+    immediatelyRender: true,
+    onUpdate: ({ editor }) => {
+      setCharacterCount((editor.storage as any).characterCount.characters());
+    },
+  });
+
+  const editorMdRef = useTiptap({
+    content: '',
+    contentType: 'markdown',
+    editable: false,
+    baseUrl: window.__BASENAME__ || '',
     immediatelyRender: true,
     onUpdate: ({ editor }) => {
       setCharacterCount((editor.storage as any).characterCount.characters());
@@ -49,9 +72,15 @@ const History = () => {
   });
 
   const getDetail = (v: DomainNodeReleaseListItem) => {
-    getApiProV1NodeReleaseDetail({ id: v.id! }).then(res => {
+    getApiProV1NodeReleaseDetail({ id: v.id!, kb_id: kb_id! }).then(res => {
       setCurNode(res);
-      editorRef.editor.commands.setContent(res.content || '');
+      if (res.meta?.content_type === 'md') {
+        setIsMarkdown(true);
+        editorMdRef.setContent(res.content || '');
+      } else {
+        setIsMarkdown(false);
+        editorRef.setContent(res.content || '');
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
   };
@@ -109,8 +138,7 @@ const History = () => {
               },
             }}
           >
-            <Icon
-              type='icon-muluzhankai'
+            <IconMuluzhankai
               sx={{
                 fontSize: 24,
               }}
@@ -125,7 +153,7 @@ const History = () => {
             navigate(`/doc/editor/${id}`);
           }}
         >
-          <Icon type='icon-chahao' />
+          <IconChahao sx={{ fontSize: 16 }} />
         </IconButton>
       </Stack>
       <Box sx={{ mt: '56px', mr: '292px' }}>
@@ -166,15 +194,43 @@ const History = () => {
             <Stack
               direction={'row'}
               alignItems={'center'}
+              flexWrap={'wrap'}
               gap={2}
               sx={{ mb: 4, fontSize: 12, color: 'text.tertiary' }}
             >
+              {curNode.editor_account && (
+                <Tooltip
+                  arrow
+                  title={
+                    curNode.creator_account || curNode.publisher_account ? (
+                      <Stack>
+                        {curNode.creator_account && (
+                          <Box>创建：{curNode.creator_account}</Box>
+                        )}
+                        {curNode.publisher_account && (
+                          <Box>上次发布：{curNode.publisher_account}</Box>
+                        )}
+                      </Stack>
+                    ) : null
+                  }
+                >
+                  <Stack
+                    direction={'row'}
+                    alignItems={'center'}
+                    gap={0.5}
+                    sx={{ cursor: 'pointer' }}
+                  >
+                    <IconTianjiawendang sx={{ fontSize: 9 }} />
+                    {curNode.editor_account} 编辑
+                  </Stack>
+                </Tooltip>
+              )}
               <Stack direction={'row'} alignItems={'center'} gap={0.5}>
-                <Icon type='icon-a-shijian2' />
+                <IconAShijian2 sx={{ fontSize: 12 }} />
                 {curVersion?.release_message}
               </Stack>
               <Stack direction={'row'} alignItems={'center'} gap={0.5}>
-                <Icon type='icon-ziti' />
+                <IconZiti sx={{ fontSize: 12 }} />
                 {characterCount} 字
               </Stack>
             </Stack>
@@ -206,13 +262,6 @@ const History = () => {
                 </Box>
               </Box>
             )}
-            {/* <EditorThemeProvider
-              colors={{ light }}
-              mode='light'
-              theme={{
-                components: componentStyleOverrides,
-              }}
-            > */}
             <Box
               sx={{
                 '.tiptap': {
@@ -224,9 +273,12 @@ const History = () => {
                 },
               }}
             >
-              <Editor editor={editorRef.editor} />
+              {isMarkdown ? (
+                <Editor editor={editorMdRef.editor} />
+              ) : (
+                <Editor editor={editorRef.editor} />
+              )}
             </Box>
-            {/* </EditorThemeProvider> */}
           </Box>
         )}
       </Box>
@@ -268,19 +320,39 @@ const History = () => {
                 setCurVersion(item);
               }}
             >
+              <Ellipsis sx={{ color: 'text.primary' }}>
+                {item.release_name}
+              </Ellipsis>
+              <Box sx={{ fontSize: 13, color: 'text.tertiary' }}>
+                {item.release_message}
+              </Box>
               <Stack
                 direction={'row'}
                 alignItems={'center'}
                 justifyContent={'space-between'}
-                sx={{ mb: 1 }}
+                sx={{ mt: 1, height: 21 }}
               >
-                <Box
-                  sx={{
-                    color: 'text.primary',
-                  }}
-                >
-                  {item.release_name}
-                </Box>
+                {item.publisher_account ? (
+                  <Stack
+                    direction={'row'}
+                    alignItems={'center'}
+                    gap={0.5}
+                    sx={{
+                      bgcolor: 'primary.main',
+                      display: 'inline-flex',
+                      color: 'white',
+                      borderRadius: '4px',
+                      p: 0.5,
+                      fontSize: 12,
+                      lineHeight: 1,
+                    }}
+                  >
+                    <IconFabu sx={{ fontSize: 16 }} />
+                    {item.publisher_account}
+                  </Stack>
+                ) : (
+                  <Box></Box>
+                )}
                 {curVersion?.id === item.id && (
                   <Box
                     sx={{
@@ -301,9 +373,6 @@ const History = () => {
                   </Box>
                 )}
               </Stack>
-              <Box sx={{ fontSize: 13, color: 'text.tertiary' }}>
-                {item.release_message}
-              </Box>
             </Box>
             {idx !== list.length - 1 && <Divider sx={{ my: 0.5 }} />}
           </>

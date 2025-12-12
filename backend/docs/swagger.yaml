@@ -1,5 +1,27 @@
 basePath: /
 definitions:
+  anydoc.Child:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/anydoc.Child'
+        type: array
+      value:
+        $ref: '#/definitions/anydoc.Value'
+    type: object
+  anydoc.Value:
+    properties:
+      file:
+        type: boolean
+      file_type:
+        type: string
+      id:
+        type: string
+      summary:
+        type: string
+      title:
+        type: string
+    type: object
   consts.AuthType:
     enum:
     - ""
@@ -36,25 +58,91 @@ definitions:
     - CopySettingNone
     - CopySettingAppend
     - CopySettingDisabled
+  consts.CrawlerSource:
+    enum:
+    - url
+    - rss
+    - sitemap
+    - notion
+    - feishu
+    - file
+    - epub
+    - yuque
+    - siyuan
+    - mindoc
+    - wikijs
+    - confluence
+    type: string
+    x-enum-varnames:
+    - CrawlerSourceUrl
+    - CrawlerSourceRSS
+    - CrawlerSourceSitemap
+    - CrawlerSourceNotion
+    - CrawlerSourceFeishu
+    - CrawlerSourceFile
+    - CrawlerSourceEpub
+    - CrawlerSourceYuque
+    - CrawlerSourceSiyuan
+    - CrawlerSourceMindoc
+    - CrawlerSourceWikijs
+    - CrawlerSourceConfluence
+  consts.CrawlerStatus:
+    enum:
+    - pending
+    - in_process
+    - completed
+    - failed
+    type: string
+    x-enum-varnames:
+    - CrawlerStatusPending
+    - CrawlerStatusInProcess
+    - CrawlerStatusCompleted
+    - CrawlerStatusFailed
+  consts.HomePageSetting:
+    enum:
+    - doc
+    - custom
+    type: string
+    x-enum-comments:
+      HomePageSettingCustom: 自定义首页
+      HomePageSettingDoc: 文档页面
+    x-enum-descriptions:
+    - 文档页面
+    - 自定义首页
+    x-enum-varnames:
+    - HomePageSettingDoc
+    - HomePageSettingCustom
   consts.LicenseEdition:
     enum:
     - 0
     - 1
     - 2
+    - 3
     format: int32
     type: integer
     x-enum-comments:
-      LicenseEditionContributor: 联创版
+      LicenseEditionBusiness: 商业版
       LicenseEditionEnterprise: 企业版
       LicenseEditionFree: 开源版
+      LicenseEditionProfession: 专业版
     x-enum-descriptions:
     - 开源版
-    - 联创版
+    - 专业版
     - 企业版
+    - 商业版
     x-enum-varnames:
     - LicenseEditionFree
-    - LicenseEditionContributor
+    - LicenseEditionProfession
     - LicenseEditionEnterprise
+    - LicenseEditionBusiness
+  consts.ModelSettingMode:
+    enum:
+    - manual
+    - auto
+    type: string
+    x-enum-varnames:
+    - ModelSettingModeManual
+    - ModelSettingModeAuto
   consts.NodeAccessPerm:
     enum:
     - open
@@ -91,6 +179,44 @@ definitions:
     - NodePermNameVisible
     - NodePermNameVisitable
     - NodePermNameAnswerable
+  consts.NodeRagInfoStatus:
+    enum:
+    - BASIC_PENDING
+    - BASIC_RUNNING
+    - BASIC_FAILED
+    - BASIC_SUCCEEDED
+    - ENHANCE_PENDING
+    - ENHANCE_RUNNING
+    - ENHANCE_FAILED
+    - ENHANCE_SUCCEEDED
+    type: string
+    x-enum-comments:
+      NodeRagStatusBasicFailed: 基础处理失败
+      NodeRagStatusBasicPending: 等待基础处理
+      NodeRagStatusBasicRunning: 正在进行基础处理（文本分割、向量化等）
+      NodeRagStatusBasicSucceeded: 基础处理成功
+      NodeRagStatusEnhanceFailed: 增强处理失败
+      NodeRagStatusEnhancePending: 基础处理完成，等待增强处理
+      NodeRagStatusEnhanceRunning: 正在进行增强处理（关键词提取等）
+      NodeRagStatusEnhanceSucceeded: 增强处理成功
+    x-enum-descriptions:
+    - 等待基础处理
+    - 正在进行基础处理（文本分割、向量化等）
+    - 基础处理失败
+    - 基础处理成功
+    - 基础处理完成，等待增强处理
+    - 正在进行增强处理（关键词提取等）
+    - 增强处理失败
+    - 增强处理成功
+    x-enum-varnames:
+    - NodeRagStatusBasicPending
+    - NodeRagStatusBasicRunning
+    - NodeRagStatusBasicFailed
+    - NodeRagStatusBasicSucceeded
+    - NodeRagStatusEnhancePending
+    - NodeRagStatusEnhanceRunning
+    - NodeRagStatusEnhanceFailed
+    - NodeRagStatusEnhanceSucceeded
   consts.RedeemCaptchaReq:
     properties:
       solutions:
@@ -112,11 +238,14 @@ definitions:
     - widget
     - dingtalk_bot
     - feishu_bot
+    - lark_bot
     - wechat_bot
+    - wecom_ai_bot
     - wechat_service_bot
     - discord_bot
     - wechat_official_account
     - openai_api
+    - mcp_server
     type: string
     x-enum-varnames:
     - SourceTypeDingTalk
@@ -129,11 +258,14 @@ definitions:
     - SourceTypeWidget
     - SourceTypeDingtalkBot
     - SourceTypeFeishuBot
+    - SourceTypeLarkBot
     - SourceTypeWechatBot
+    - SourceTypeWecomAIBot
     - SourceTypeWechatServiceBot
     - SourceTypeDiscordBot
     - SourceTypeWechatOfficialAccount
     - SourceTypeOpenAIAPI
+    - SourceTypeMcpServer
   consts.StatDay:
     enum:
     - 1
@@ -245,13 +377,13 @@ definitions:
           type: string
         type: array
     type: object
-  domain.AnalysisConfluenceResp:
+  domain.AnydocUploadResp:
     properties:
-      content:
+      code:
+        type: integer
+      data:
         type: string
-      id:
-        type: string
-      title:
+      err:
         type: string
     type: object
   domain.AppDetailResp:
@@ -273,6 +405,8 @@ definitions:
     type: object
   domain.AppInfoResp:
     properties:
+      base_url:
+        type: string
       name:
         type: string
       recommend_nodes:
@@ -288,8 +422,6 @@ definitions:
         allOf:
         - $ref: '#/definitions/domain.AIFeedbackSettings'
         description: AI feedback
-      auto_sitemap:
-        type: boolean
       body_code:
         type: string
       btns:
@@ -301,6 +433,8 @@ definitions:
         description: catalog settings
       contribute_settings:
         $ref: '#/definitions/domain.ContributeSettings'
+      conversation_setting:
+        $ref: '#/definitions/domain.ConversationSetting'
       copy_setting:
         allOf:
         - $ref: '#/definitions/consts.CopySetting'
@@ -346,10 +480,20 @@ definitions:
       head_code:
         description: inject code
         type: string
+      home_page_setting:
+        $ref: '#/definitions/consts.HomePageSetting'
       icon:
         type: string
       keyword:
         type: string
+      lark_bot_settings:
+        allOf:
+        - $ref: '#/definitions/domain.LarkBotSettings'
+        description: LarkBot
+      mcp_server_settings:
+        allOf:
+        - $ref: '#/definitions/domain.MCPServerSettings'
+        description: MCP Server Settings
       openai_api_bot_settings:
         allOf:
         - $ref: '#/definitions/domain.OpenAIAPIBotSettings'
@@ -364,6 +508,8 @@ definitions:
         type: array
       search_placeholder:
         type: string
+      stats_setting:
+        $ref: '#/definitions/domain.StatsSetting'
       theme_and_style:
         $ref: '#/definitions/domain.ThemeAndStyle'
       theme_mode:
@@ -389,6 +535,15 @@ definitions:
         allOf:
         - $ref: '#/definitions/domain.WebAppCustomSettings'
         description: WebAppCustomStyle
+      web_app_landing_configs:
+        description: WebAppLandingConfigs
+        items:
+          $ref: '#/definitions/domain.WebAppLandingConfig'
+        type: array
+      web_app_landing_theme:
+        $ref: '#/definitions/domain.WebAppLandingTheme'
+      wechat_app_advanced_setting:
+        $ref: '#/definitions/domain.WeChatAppAdvancedSetting'
       wechat_app_agent_id:
         type: string
       wechat_app_corpid:
@@ -396,7 +551,7 @@ definitions:
       wechat_app_encodingaeskey:
         type: string
       wechat_app_is_enabled:
-        description: WechatAppBot
+        description: WechatAppBot 企业微信机器人
         type: boolean
       wechat_app_secret:
         type: string
@@ -413,10 +568,18 @@ definitions:
         type: boolean
       wechat_official_account_token:
         type: string
+      wechat_service_contain_keywords:
+        items:
+          type: string
+        type: array
       wechat_service_corpid:
         type: string
       wechat_service_encodingaeskey:
         type: string
+      wechat_service_equal_keywords:
+        items:
+          type: string
+        type: array
       wechat_service_is_enabled:
         description: WechatServiceBot
         type: boolean
@@ -424,6 +587,10 @@ definitions:
         type: string
       wechat_service_token:
         type: string
+      wecom_ai_bot_settings:
+        allOf:
+        - $ref: '#/definitions/domain.WecomAIBotSettings'
+        description: WecomAIBotSettings 企业微信智能机器人
       welcome_str:
         description: welcome
         type: string
@@ -438,8 +605,6 @@ definitions:
         allOf:
         - $ref: '#/definitions/domain.AIFeedbackSettings'
         description: AI feedback
-      auto_sitemap:
-        type: boolean
       body_code:
         type: string
       btns:
@@ -451,6 +616,8 @@ definitions:
         description: catalog settings
       contribute_settings:
         $ref: '#/definitions/domain.ContributeSettings'
+      conversation_setting:
+        $ref: '#/definitions/domain.ConversationSetting'
       copy_setting:
         $ref: '#/definitions/consts.CopySetting'
       desc:
@@ -491,10 +658,20 @@ definitions:
       head_code:
         description: inject code
         type: string
+      home_page_setting:
+        $ref: '#/definitions/consts.HomePageSetting'
       icon:
         type: string
       keyword:
         type: string
+      lark_bot_settings:
+        allOf:
+        - $ref: '#/definitions/domain.LarkBotSettings'
+        description: LarkBot
+      mcp_server_settings:
+        allOf:
+        - $ref: '#/definitions/domain.MCPServerSettings'
+        description: MCP Server Settings
       openai_api_bot_settings:
         allOf:
         - $ref: '#/definitions/domain.OpenAIAPIBotSettings'
@@ -509,6 +686,8 @@ definitions:
         type: array
       search_placeholder:
         type: string
+      stats_setting:
+        $ref: '#/definitions/domain.StatsSetting'
       theme_and_style:
         $ref: '#/definitions/domain.ThemeAndStyle'
       theme_mode:
@@ -529,6 +708,15 @@ definitions:
         allOf:
         - $ref: '#/definitions/domain.WebAppCustomSettings'
         description: WebAppCustomStyle
+      web_app_landing_configs:
+        description: WebApp Landing Settings
+        items:
+          $ref: '#/definitions/domain.WebAppLandingConfigResp'
+        type: array
+      web_app_landing_theme:
+        $ref: '#/definitions/domain.WebAppLandingTheme'
+      wechat_app_advanced_setting:
+        $ref: '#/definitions/domain.WeChatAppAdvancedSetting'
       wechat_app_agent_id:
         type: string
       wechat_app_corpid:
@@ -553,10 +741,18 @@ definitions:
         type: boolean
       wechat_official_account_token:
         type: string
+      wechat_service_contain_keywords:
+        items:
+          type: string
+        type: array
       wechat_service_corpid:
         type: string
       wechat_service_encodingaeskey:
         type: string
+      wechat_service_equal_keywords:
+        items:
+          type: string
+        type: array
       wechat_service_is_enabled:
         description: WechatServiceBot
         type: boolean
@@ -564,6 +760,8 @@ definitions:
         type: string
       wechat_service_token:
         type: string
+      wecom_ai_bot_settings:
+        $ref: '#/definitions/domain.WecomAIBotSettings'
       welcome_str:
         description: welcome
         type: string
@@ -583,6 +781,9 @@ definitions:
     - 7
     - 8
     - 9
+    - 10
+    - 11
+    - 12
     format: int32
     type: integer
     x-enum-varnames:
@@ -595,6 +796,9 @@ definitions:
     - AppTypeDisCordBot
     - AppTypeWechatOfficialAccount
     - AppTypeOpenAIAPI
+    - AppTypeWecomAIBot
+    - AppTypeLarkBot
+    - AppTypeMcpServer
   domain.AuthUserInfo:
     properties:
       avatar_url:
@@ -602,6 +806,51 @@ definitions:
       email:
         type: string
       username:
+        type: string
+    type: object
+  domain.BannerConfig:
+    properties:
+      bg_url:
+        type: string
+      btns:
+        items:
+          properties:
+            href:
+              type: string
+            id:
+              type: string
+            text:
+              type: string
+            type:
+              type: string
+          type: object
+        type: array
+      hot_search:
+        items:
+          type: string
+        type: array
+      placeholder:
+        type: string
+      subtitle:
+        type: string
+      subtitle_color:
+        type: string
+      subtitle_font_size:
+        type: integer
+      title:
+        type: string
+      title_color:
+        type: string
+      title_font_size:
+        type: integer
+    type: object
+  domain.BasicDocConfig:
+    properties:
+      bg_color:
+        type: string
+      title:
+        type: string
+      title_color:
         type: string
     type: object
   domain.BatchMoveReq:
@@ -618,6 +867,24 @@ definitions:
     - ids
     - kb_id
     type: object
+  domain.BlockGridConfig:
+    properties:
+      list:
+        items:
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            url:
+              type: string
+          type: object
+        type: array
+      title:
+        type: string
+      type:
+        type: string
+    type: object
   domain.BrandGroup:
     properties:
       links:
@@ -632,6 +899,44 @@ definitions:
       count:
         type: integer
       name:
+        type: string
+    type: object
+  domain.CarouselConfig:
+    properties:
+      bg_color:
+        type: string
+      list:
+        items:
+          properties:
+            desc:
+              type: string
+            id:
+              type: string
+            title:
+              type: string
+            url:
+              type: string
+          type: object
+        type: array
+      title:
+        type: string
+    type: object
+  domain.CaseConfig:
+    properties:
+      list:
+        items:
+          properties:
+            id:
+              type: string
+            link:
+              type: string
+            name:
+              type: string
+          type: object
+        type: array
+      title:
+        type: string
+      type:
         type: string
     type: object
   domain.CatalogSettings:
@@ -665,6 +970,44 @@ definitions:
     required:
     - app_type
     - message
+    type: object
+  domain.ChatSearchReq:
+    properties:
+      captcha_token:
+        type: string
+      message:
+        type: string
+    required:
+    - message
+    type: object
+  domain.ChatSearchResp:
+    properties:
+      node_result:
+        items:
+          $ref: '#/definitions/domain.NodeContentChunkSSE'
+        type: array
+    type: object
+  domain.CommentConfig:
+    properties:
+      list:
+        items:
+          properties:
+            avatar:
+              type: string
+            comment:
+              type: string
+            id:
+              type: string
+            profession:
+              type: string
+            user_name:
+              type: string
+          type: object
+        type: array
+      title:
+        type: string
+      type:
+        type: string
     type: object
   domain.CommentInfo:
     properties:
@@ -718,6 +1061,10 @@ definitions:
         type: string
       parent_id:
         type: string
+      pic_urls:
+        items:
+          type: string
+        type: array
       root_id:
         type: string
       user_name:
@@ -725,6 +1072,7 @@ definitions:
     required:
     - content
     - node_id
+    - pic_urls
     type: object
   domain.CommentStatus:
     enum:
@@ -737,6 +1085,14 @@ definitions:
     - CommentStatusReject
     - CommentStatusPending
     - CommentStatusAccepted
+  domain.CompleteReq:
+    properties:
+      prefix:
+        description: For FIM (Fill in Middle) style completion
+        type: string
+      suffix:
+        type: string
+    type: object
   domain.ContributeSettings:
     properties:
       is_enable:
@@ -764,15 +1120,6 @@ definitions:
         type: string
       subject:
         type: string
-    type: object
-  domain.ConversationDistribution:
-    properties:
-      app_id:
-        type: string
-      app_type:
-        $ref: '#/definitions/domain.AppType'
-      count:
-        type: integer
     type: object
   domain.ConversationInfo:
     properties:
@@ -884,6 +1231,13 @@ definitions:
       url:
         type: string
     type: object
+  domain.ConversationSetting:
+    properties:
+      copyright_hide_enabled:
+        type: boolean
+      copyright_info:
+        type: string
+    type: object
   domain.CreateKBReleaseReq:
     properties:
       kb_id:
@@ -939,7 +1293,7 @@ definitions:
       model:
         type: string
       parameters:
-        $ref: '#/definitions/domain.ModelParam'
+        $ref: '#/definitions/github_com_chaitin_panda-wiki_domain.ModelParam'
       provider:
         $ref: '#/definitions/github_com_chaitin_panda-wiki_domain.ModelProvider'
       type:
@@ -950,6 +1304,7 @@ definitions:
         - embedding
         - rerank
         - analysis
+        - analysis-vl
     required:
     - base_url
     - model
@@ -959,6 +1314,8 @@ definitions:
   domain.CreateNodeReq:
     properties:
       content:
+        type: string
+      content_type:
         type: string
       emoji:
         type: string
@@ -970,6 +1327,8 @@ definitions:
         type: string
       position:
         type: number
+      summary:
+        type: string
       type:
         allOf:
         - $ref: '#/definitions/domain.NodeType'
@@ -981,6 +1340,15 @@ definitions:
     - name
     - type
     type: object
+  domain.DirDocConfig:
+    properties:
+      bg_color:
+        type: string
+      title:
+        type: string
+      title_color:
+        type: string
+    type: object
   domain.DisclaimerSettings:
     properties:
       content:
@@ -991,11 +1359,42 @@ definitions:
       enabled:
         type: boolean
     type: object
-  domain.EpubResp:
+  domain.FaqConfig:
     properties:
-      content:
+      bg_color:
         type: string
+      list:
+        items:
+          properties:
+            id:
+              type: string
+            link:
+              type: string
+            question:
+              type: string
+          type: object
+        type: array
       title:
+        type: string
+      title_color:
+        type: string
+    type: object
+  domain.FeatureConfig:
+    properties:
+      list:
+        items:
+          properties:
+            desc:
+              type: string
+            id:
+              type: string
+            name:
+              type: string
+          type: object
+        type: array
+      title:
+        type: string
+      type:
         type: string
     type: object
   domain.FeedBackInfo:
@@ -1046,44 +1445,6 @@ definitions:
       icp:
         type: string
     type: object
-  domain.GetDocsReq:
-    properties:
-      integration:
-        type: string
-      kb_id:
-        type: string
-      pages:
-        items:
-          $ref: '#/definitions/domain.PageInfo'
-        type: array
-    required:
-    - kb_id
-    type: object
-  domain.GetDocxReq:
-    properties:
-      app_id:
-        type: string
-      app_secret:
-        type: string
-      kb_id:
-        type: string
-      sources:
-        items:
-          $ref: '#/definitions/domain.Source'
-        type: array
-      user_access_token:
-        type: string
-    required:
-    - kb_id
-    - sources
-    type: object
-  domain.GetDocxResp:
-    properties:
-      content:
-        type: string
-      title:
-        type: string
-    type: object
   domain.GetKBReleaseListResp:
     properties:
       data:
@@ -1111,6 +1472,7 @@ definitions:
         - embedding
         - rerank
         - analysis
+        - analysis-vl
     required:
     - base_url
     - provider
@@ -1122,22 +1484,6 @@ definitions:
         items:
           $ref: '#/definitions/domain.ProviderModelListItem'
         type: array
-    type: object
-  domain.GetSpaceListReq:
-    properties:
-      app_id:
-        type: string
-      app_secret:
-        type: string
-      user_access_token:
-        type: string
-    type: object
-  domain.GetSpaceListResp:
-    properties:
-      name:
-        type: string
-      space_id:
-        type: string
     type: object
   domain.HotBrowser:
     properties:
@@ -1177,6 +1523,22 @@ definitions:
       ip:
         type: string
       province:
+        type: string
+    type: object
+  domain.ImgTextConfig:
+    properties:
+      item:
+        properties:
+          desc:
+            type: string
+          name:
+            type: string
+          url:
+            type: string
+        type: object
+      title:
+        type: string
+      type:
         type: string
     type: object
   domain.InstantCountResp:
@@ -1252,12 +1614,43 @@ definitions:
       updated_at:
         type: string
     type: object
+  domain.LarkBotSettings:
+    properties:
+      app_id:
+        type: string
+      app_secret:
+        type: string
+      encrypt_key:
+        type: string
+      is_enabled:
+        type: boolean
+      verify_token:
+        type: string
+    type: object
   domain.Link:
     properties:
       name:
         type: string
       url:
         type: string
+    type: object
+  domain.MCPServerSettings:
+    properties:
+      docs_tool_settings:
+        $ref: '#/definitions/domain.MCPToolSettings'
+      is_enabled:
+        type: boolean
+      sample_auth:
+        $ref: '#/definitions/domain.SimpleAuth'
+    type: object
+  domain.MCPToolSettings:
+    properties:
+      desc:
+        type: string
+      name:
+        type: string
+    type: object
+  domain.MessageContent:
     type: object
   domain.MessageFrom:
     enum:
@@ -1267,20 +1660,39 @@ definitions:
     x-enum-varnames:
     - MessageFromGroup
     - MessageFromPrivate
-  domain.ModelParam:
+  domain.MetricsConfig:
     properties:
-      context_window:
-        type: integer
-      max_tokens:
-        type: integer
-      r1_enabled:
+      list:
+        items:
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            number:
+              type: string
+          type: object
+        type: array
+      title:
+        type: string
+      type:
+        type: string
+    type: object
+  domain.ModelModeSetting:
+    properties:
+      auto_mode_api_key:
+        description: 百智云 API Key
+        type: string
+      chat_model:
+        description: 自定义对话模型名称
+        type: string
+      is_manual_embedding_updated:
+        description: 手动模式下嵌入模型是否更新
         type: boolean
-      support_computer_use:
-        type: boolean
-      support_images:
-        type: boolean
-      support_prompt_cache:
-        type: boolean
+      mode:
+        allOf:
+        - $ref: '#/definitions/consts.ModelSettingMode'
+        description: '模式: manual 或 auto'
     type: object
   domain.ModelType:
     enum:
@@ -1288,12 +1700,14 @@ definitions:
     - embedding
     - rerank
     - analysis
+    - analysis-vl
     type: string
     x-enum-varnames:
     - ModelTypeChat
     - ModelTypeEmbedding
     - ModelTypeRerank
     - ModelTypeAnalysis
+    - ModelTypeAnalysisVL
   domain.MoveNodeReq:
     properties:
       id:
@@ -1327,6 +1741,21 @@ definitions:
     - ids
     - kb_id
     type: object
+  domain.NodeContentChunkSSE:
+    properties:
+      emoji:
+        type: string
+      name:
+        type: string
+      node_id:
+        type: string
+      node_path_names:
+        items:
+          type: string
+        type: array
+      summary:
+        type: string
+    type: object
   domain.NodeGroupDetail:
     properties:
       auth_group_id:
@@ -1346,6 +1775,8 @@ definitions:
     type: object
   domain.NodeListItemResp:
     properties:
+      content_type:
+        type: string
       created_at:
         type: string
       creator:
@@ -1368,6 +1799,10 @@ definitions:
         $ref: '#/definitions/domain.NodePermissions'
       position:
         type: number
+      publisher_id:
+        type: string
+      rag_info:
+        $ref: '#/definitions/domain.RagInfo'
       status:
         $ref: '#/definitions/domain.NodeStatus'
       summary:
@@ -1379,6 +1814,8 @@ definitions:
     type: object
   domain.NodeMeta:
     properties:
+      content_type:
+        type: string
       emoji:
         type: string
       summary:
@@ -1429,15 +1866,10 @@ definitions:
     x-enum-varnames:
     - NodeTypeFolder
     - NodeTypeDocument
-  domain.NotnionGetListReq:
-    properties:
-      cation_title:
-        type: string
-      integration:
-        type: string
-    type: object
   domain.ObjectUploadResp:
     properties:
+      filename:
+        type: string
       key:
         type: string
     type: object
@@ -1483,6 +1915,8 @@ definitions:
         type: array
       stream:
         type: boolean
+      stream_options:
+        $ref: '#/definitions/domain.OpenAIStreamOptions'
       temperature:
         type: number
       tool_choice:
@@ -1564,7 +1998,7 @@ definitions:
   domain.OpenAIMessage:
     properties:
       content:
-        type: string
+        $ref: '#/definitions/domain.MessageContent'
       name:
         type: string
       role:
@@ -1584,6 +2018,11 @@ definitions:
         type: string
     required:
     - type
+    type: object
+  domain.OpenAIStreamOptions:
+    properties:
+      include_usage:
+        type: boolean
     type: object
   domain.OpenAITool:
     properties:
@@ -1633,24 +2072,6 @@ definitions:
       success:
         type: boolean
     type: object
-  domain.Page:
-    properties:
-      content:
-        type: string
-      id:
-        type: string
-      parent_id:
-        type: string
-      title:
-        type: string
-    type: object
-  domain.PageInfo:
-    properties:
-      id:
-        type: string
-      title:
-        type: string
-    type: object
   domain.PaginatedResult-array_domain_ConversationMessageListItem:
     properties:
       data:
@@ -1660,35 +2081,33 @@ definitions:
       total:
         type: integer
     type: object
-  domain.ParseURLItem:
-    properties:
-      desc:
-        type: string
-      published:
-        type: string
-      title:
-        type: string
-      url:
-        type: string
-    type: object
-  domain.ParseURLReq:
-    properties:
-      url:
-        type: string
-    required:
-    - url
-    type: object
-  domain.ParseURLResp:
-    properties:
-      items:
-        items:
-          $ref: '#/definitions/domain.ParseURLItem'
-        type: array
-    type: object
   domain.ProviderModelListItem:
     properties:
       model:
         type: string
+    type: object
+  domain.QuestionConfig:
+    properties:
+      list:
+        items:
+          properties:
+            id:
+              type: string
+            question:
+              type: string
+          type: object
+        type: array
+      title:
+        type: string
+      type:
+        type: string
+    type: object
+  domain.RagInfo:
+    properties:
+      message:
+        type: string
+      status:
+        $ref: '#/definitions/consts.NodeRagInfoStatus'
     type: object
   domain.RecommendNodeListResp:
     properties:
@@ -1729,68 +2148,6 @@ definitions:
     x-enum-varnames:
     - Like
     - DisLike
-  domain.ScrapeReq:
-    properties:
-      kb_id:
-        type: string
-      url:
-        type: string
-    required:
-    - kb_id
-    type: object
-  domain.ScrapeResp:
-    properties:
-      content:
-        type: string
-      title:
-        type: string
-    type: object
-  domain.SearchDocxReq:
-    properties:
-      app_id:
-        type: string
-      app_secret:
-        type: string
-      user_access_token:
-        type: string
-    type: object
-  domain.SearchDocxResp:
-    properties:
-      name:
-        type: string
-      obj_token:
-        type: string
-      obj_type:
-        type: integer
-      url:
-        type: string
-    type: object
-  domain.SearchWikiReq:
-    properties:
-      app_id:
-        type: string
-      app_secret:
-        type: string
-      query:
-        type: string
-      space_id:
-        type: string
-      user_access_token:
-        type: string
-    type: object
-  domain.SearchWikiResp:
-    properties:
-      obj_token:
-        type: string
-      obj_type:
-        type: integer
-      space_id:
-        type: string
-      title:
-        type: string
-      url:
-        type: string
-    type: object
   domain.ShareCommentListItem:
     properties:
       content:
@@ -1811,6 +2168,10 @@ definitions:
         type: string
       parent_id:
         type: string
+      pic_urls:
+        items:
+          type: string
+        type: array
       root_id:
         type: string
     type: object
@@ -1836,13 +2197,29 @@ definitions:
       role:
         $ref: '#/definitions/schema.RoleType'
     type: object
-  domain.SiYuanResp:
+  domain.ShareNodeDetailItem:
     properties:
-      content:
+      children:
+        items:
+          $ref: '#/definitions/domain.ShareNodeDetailItem'
+        type: array
+      emoji:
         type: string
       id:
-        type: integer
-      title:
+        type: string
+      meta:
+        $ref: '#/definitions/domain.NodeMeta'
+      name:
+        type: string
+      parent_id:
+        type: string
+      permissions:
+        $ref: '#/definitions/domain.NodePermissions'
+      position:
+        type: number
+      type:
+        $ref: '#/definitions/domain.NodeType'
+      updated_at:
         type: string
     type: object
   domain.SimpleAuth:
@@ -1850,6 +2227,15 @@ definitions:
       enabled:
         type: boolean
       password:
+        type: string
+    type: object
+  domain.SimpleDocConfig:
+    properties:
+      bg_color:
+        type: string
+      title:
+        type: string
+      title_color:
         type: string
     type: object
   domain.SocialMediaAccount:
@@ -1863,15 +2249,6 @@ definitions:
       phone:
         type: string
       text:
-        type: string
-    type: object
-  domain.Source:
-    properties:
-      obj_token:
-        type: string
-      obj_type:
-        type: integer
-      url:
         type: string
     type: object
   domain.StatPageReq:
@@ -1901,6 +2278,55 @@ definitions:
     - StatPageSceneNodeDetail
     - StatPageSceneChat
     - StatPageSceneLogin
+  domain.StatsSetting:
+    properties:
+      pv_enable:
+        type: boolean
+    type: object
+  domain.SwitchModeReq:
+    properties:
+      auto_mode_api_key:
+        description: 百智云 API Key
+        type: string
+      chat_model:
+        description: 自定义对话模型名称
+        type: string
+      mode:
+        enum:
+        - manual
+        - auto
+        type: string
+    required:
+    - mode
+    type: object
+  domain.SwitchModeResp:
+    properties:
+      message:
+        type: string
+    type: object
+  domain.TextConfig:
+    properties:
+      title:
+        type: string
+      type:
+        type: string
+    type: object
+  domain.TextImgConfig:
+    properties:
+      item:
+        properties:
+          desc:
+            type: string
+          name:
+            type: string
+          url:
+            type: string
+        type: object
+      title:
+        type: string
+      type:
+        type: string
+    type: object
   domain.TextReq:
     properties:
       action:
@@ -1956,7 +2382,7 @@ definitions:
       model:
         type: string
       parameters:
-        $ref: '#/definitions/domain.ModelParam'
+        $ref: '#/definitions/github_com_chaitin_panda-wiki_domain.ModelParam'
       provider:
         $ref: '#/definitions/github_com_chaitin_panda-wiki_domain.ModelProvider'
       type:
@@ -1967,6 +2393,7 @@ definitions:
         - embedding
         - rerank
         - analysis
+        - analysis-vl
     required:
     - base_url
     - id
@@ -1977,6 +2404,8 @@ definitions:
   domain.UpdateNodeReq:
     properties:
       content:
+        type: string
+      content_type:
         type: string
       emoji:
         type: string
@@ -2012,6 +2441,21 @@ definitions:
       user_id:
         type: string
     type: object
+  domain.WeChatAppAdvancedSetting:
+    properties:
+      disclaimer_content:
+        type: string
+      feedback_enable:
+        type: boolean
+      feedback_type:
+        items:
+          type: string
+        type: array
+      prompt:
+        type: string
+      text_response_enable:
+        type: boolean
+    type: object
   domain.WebAppCommentSettings:
     properties:
       is_enable:
@@ -2034,31 +2478,145 @@ definitions:
           $ref: '#/definitions/domain.SocialMediaAccount'
         type: array
     type: object
+  domain.WebAppLandingConfig:
+    properties:
+      banner_config:
+        $ref: '#/definitions/domain.BannerConfig'
+      basic_doc_config:
+        $ref: '#/definitions/domain.BasicDocConfig'
+      block_grid_config:
+        $ref: '#/definitions/domain.BlockGridConfig'
+      carousel_config:
+        $ref: '#/definitions/domain.CarouselConfig'
+      case_config:
+        $ref: '#/definitions/domain.CaseConfig'
+      com_config_order:
+        items:
+          type: string
+        type: array
+      comment_config:
+        $ref: '#/definitions/domain.CommentConfig'
+      dir_doc_config:
+        $ref: '#/definitions/domain.DirDocConfig'
+      faq_config:
+        $ref: '#/definitions/domain.FaqConfig'
+      feature_config:
+        $ref: '#/definitions/domain.FeatureConfig'
+      img_text_config:
+        $ref: '#/definitions/domain.ImgTextConfig'
+      metrics_config:
+        $ref: '#/definitions/domain.MetricsConfig'
+      node_ids:
+        items:
+          type: string
+        type: array
+      question_config:
+        $ref: '#/definitions/domain.QuestionConfig'
+      simple_doc_config:
+        $ref: '#/definitions/domain.SimpleDocConfig'
+      text_config:
+        $ref: '#/definitions/domain.TextConfig'
+      text_img_config:
+        $ref: '#/definitions/domain.TextImgConfig'
+      type:
+        type: string
+    type: object
+  domain.WebAppLandingConfigResp:
+    properties:
+      banner_config:
+        $ref: '#/definitions/domain.BannerConfig'
+      basic_doc_config:
+        $ref: '#/definitions/domain.BasicDocConfig'
+      block_grid_config:
+        $ref: '#/definitions/domain.BlockGridConfig'
+      carousel_config:
+        $ref: '#/definitions/domain.CarouselConfig'
+      case_config:
+        $ref: '#/definitions/domain.CaseConfig'
+      com_config_order:
+        items:
+          type: string
+        type: array
+      comment_config:
+        $ref: '#/definitions/domain.CommentConfig'
+      dir_doc_config:
+        $ref: '#/definitions/domain.DirDocConfig'
+      faq_config:
+        $ref: '#/definitions/domain.FaqConfig'
+      feature_config:
+        $ref: '#/definitions/domain.FeatureConfig'
+      img_text_config:
+        $ref: '#/definitions/domain.ImgTextConfig'
+      metrics_config:
+        $ref: '#/definitions/domain.MetricsConfig'
+      node_ids:
+        items:
+          type: string
+        type: array
+      nodes:
+        items:
+          $ref: '#/definitions/domain.RecommendNodeListResp'
+        type: array
+      question_config:
+        $ref: '#/definitions/domain.QuestionConfig'
+      simple_doc_config:
+        $ref: '#/definitions/domain.SimpleDocConfig'
+      text_config:
+        $ref: '#/definitions/domain.TextConfig'
+      text_img_config:
+        $ref: '#/definitions/domain.TextImgConfig'
+      type:
+        type: string
+    type: object
+  domain.WebAppLandingTheme:
+    properties:
+      name:
+        type: string
+    type: object
+  domain.WecomAIBotSettings:
+    properties:
+      encodingaeskey:
+        type: string
+      is_enabled:
+        type: boolean
+      token:
+        type: string
+    type: object
   domain.WidgetBotSettings:
     properties:
+      btn_id:
+        type: string
       btn_logo:
+        type: string
+      btn_position:
+        type: string
+      btn_style:
         type: string
       btn_text:
         type: string
+      copyright_hide_enabled:
+        type: boolean
+      copyright_info:
+        type: string
+      disclaimer:
+        type: string
       is_open:
         type: boolean
+      modal_position:
+        type: string
+      placeholder:
+        type: string
+      recommend_node_ids:
+        items:
+          type: string
+        type: array
+      recommend_questions:
+        items:
+          type: string
+        type: array
+      search_mode:
+        type: string
       theme_mode:
-        type: string
-    type: object
-  domain.WikiJSResp:
-    properties:
-      content:
-        type: string
-      id:
-        type: integer
-      title:
-        type: string
-    type: object
-  domain.YuqueResp:
-    properties:
-      content:
-        type: string
-      title:
         type: string
     type: object
   github_com_chaitin_panda-wiki_api_auth_v1.AuthGetResp:
@@ -2100,6 +2658,8 @@ definitions:
         type: string
       model:
         type: string
+      parameters:
+        $ref: '#/definitions/github_com_chaitin_panda-wiki_domain.ModelParam'
       provider:
         $ref: '#/definitions/github_com_chaitin_panda-wiki_domain.ModelProvider'
       type:
@@ -2110,6 +2670,7 @@ definitions:
         - embedding
         - rerank
         - analysis
+        - analysis-vl
     required:
     - base_url
     - model
@@ -2143,7 +2704,7 @@ definitions:
       model:
         type: string
       parameters:
-        $ref: '#/definitions/domain.ModelParam'
+        $ref: '#/definitions/github_com_chaitin_panda-wiki_domain.ModelParam'
       prompt_tokens:
         type: integer
       provider:
@@ -2152,6 +2713,23 @@ definitions:
         type: integer
       type:
         $ref: '#/definitions/domain.ModelType'
+    type: object
+  github_com_chaitin_panda-wiki_domain.ModelParam:
+    properties:
+      context_window:
+        type: integer
+      max_tokens:
+        type: integer
+      r1_enabled:
+        type: boolean
+      support_computer_use:
+        type: boolean
+      support_images:
+        type: boolean
+      support_prompt_cache:
+        type: boolean
+      temperature:
+        type: number
     type: object
   github_com_chaitin_panda-wiki_domain.ModelProvider:
     enum:
@@ -2288,6 +2866,94 @@ definitions:
       total:
         type: integer
     type: object
+  v1.CrawlerExportReq:
+    properties:
+      doc_id:
+        type: string
+      file_type:
+        type: string
+      id:
+        type: string
+      kb_id:
+        type: string
+      space_id:
+        type: string
+    required:
+    - doc_id
+    - id
+    - kb_id
+    type: object
+  v1.CrawlerExportResp:
+    properties:
+      task_id:
+        type: string
+    type: object
+  v1.CrawlerParseReq:
+    properties:
+      crawler_source:
+        $ref: '#/definitions/consts.CrawlerSource'
+      feishu_setting:
+        $ref: '#/definitions/v1.FeishuSetting'
+      filename:
+        type: string
+      kb_id:
+        type: string
+      key:
+        type: string
+    required:
+    - crawler_source
+    - kb_id
+    type: object
+  v1.CrawlerParseResp:
+    properties:
+      docs:
+        $ref: '#/definitions/anydoc.Child'
+      id:
+        type: string
+    type: object
+  v1.CrawlerResultItem:
+    properties:
+      content:
+        type: string
+      status:
+        $ref: '#/definitions/consts.CrawlerStatus'
+      task_id:
+        type: string
+    type: object
+  v1.CrawlerResultReq:
+    properties:
+      task_id:
+        type: string
+    required:
+    - task_id
+    type: object
+  v1.CrawlerResultResp:
+    properties:
+      content:
+        type: string
+      status:
+        $ref: '#/definitions/consts.CrawlerStatus'
+    required:
+    - status
+    type: object
+  v1.CrawlerResultsReq:
+    properties:
+      task_ids:
+        items:
+          type: string
+        type: array
+    required:
+    - task_ids
+    type: object
+  v1.CrawlerResultsResp:
+    properties:
+      list:
+        items:
+          $ref: '#/definitions/v1.CrawlerResultItem'
+        type: array
+      status:
+        $ref: '#/definitions/consts.CrawlerStatus'
+    type: object
   v1.CreateUserReq:
     properties:
       account:
@@ -2311,12 +2977,21 @@ definitions:
       id:
         type: string
     type: object
-  v1.DeleteUserReq:
+  v1.FeishuSetting:
     properties:
-      user_id:
+      app_id:
         type: string
-    required:
-    - user_id
+      app_secret:
+        type: string
+      space_id:
+        type: string
+      user_access_token:
+        type: string
+    type: object
+  v1.FileUploadResp:
+    properties:
+      key:
+        type: string
     type: object
   v1.KBUserInviteReq:
     properties:
@@ -2386,6 +3061,14 @@ definitions:
         type: string
       created_at:
         type: string
+      creator_account:
+        type: string
+      creator_id:
+        type: string
+      editor_account:
+        type: string
+      editor_id:
+        type: string
       id:
         type: string
       kb_id:
@@ -2398,6 +3081,12 @@ definitions:
         type: string
       permissions:
         $ref: '#/definitions/domain.NodePermissions'
+      publisher_account:
+        type: string
+      publisher_id:
+        type: string
+      pv:
+        type: integer
       status:
         $ref: '#/definitions/domain.NodeStatus'
       type:
@@ -2458,26 +3147,20 @@ definitions:
           $ref: '#/definitions/domain.NodeGroupDetail'
         type: array
     type: object
-  v1.RecommendNodeListItem:
+  v1.NodeRestudyReq:
     properties:
-      emoji:
+      kb_id:
         type: string
-      id:
-        type: string
-      name:
-        type: string
-      parent_id:
-        type: string
-      position:
-        type: number
-      recommend_nodes:
+      node_ids:
         items:
-          $ref: '#/definitions/domain.RecommendNodeListResp'
+          type: string
+        minItems: 1
         type: array
-      summary:
-        type: string
-      type:
-        $ref: '#/definitions/domain.NodeType'
+    required:
+    - kb_id
+    - node_ids
+    type: object
+  v1.NodeRestudyResp:
     type: object
   v1.ResetPasswordReq:
     properties:
@@ -2489,6 +3172,56 @@ definitions:
     required:
     - id
     - new_password
+    type: object
+  v1.ShareNodeDetailResp:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: string
+      creator_account:
+        type: string
+      creator_id:
+        type: string
+      editor_account:
+        type: string
+      editor_id:
+        type: string
+      id:
+        type: string
+      kb_id:
+        type: string
+      list:
+        items:
+          $ref: '#/definitions/domain.ShareNodeDetailItem'
+        type: array
+      meta:
+        $ref: '#/definitions/domain.NodeMeta'
+      name:
+        type: string
+      parent_id:
+        type: string
+      permissions:
+        $ref: '#/definitions/domain.NodePermissions'
+      publisher_account:
+        type: string
+      publisher_id:
+        type: string
+      pv:
+        type: integer
+      status:
+        $ref: '#/definitions/domain.NodeStatus'
+      type:
+        $ref: '#/definitions/domain.NodeType'
+      updated_at:
+        type: string
+    type: object
+  v1.StatConversationDistributionResp:
+    properties:
+      app_type:
+        $ref: '#/definitions/domain.AppType'
+      count:
+        type: integer
     type: object
   v1.StatCountResp:
     properties:
@@ -2509,6 +3242,8 @@ definitions:
         type: string
       id:
         type: string
+      is_token:
+        type: boolean
       last_access:
         type: string
       role:
@@ -2533,6 +3268,19 @@ definitions:
         items:
           $ref: '#/definitions/v1.UserListItemResp'
         type: array
+    type: object
+  v1.WechatAppInfoResp:
+    properties:
+      disclaimer_content:
+        type: string
+      feedback_enable:
+        type: boolean
+      feedback_type:
+        items:
+          type: string
+        type: array
+      wechat_app_is_enabled:
+        type: boolean
     type: object
 info:
   contact: {}
@@ -2673,11 +3421,14 @@ paths:
         - widget
         - dingtalk_bot
         - feishu_bot
+        - lark_bot
         - wechat_bot
+        - wecom_ai_bot
         - wechat_service_bot
         - discord_bot
         - wechat_official_account
         - openai_api
+        - mcp_server
         in: query
         name: source_type
         required: true
@@ -2693,11 +3444,14 @@ paths:
         - SourceTypeWidget
         - SourceTypeDingtalkBot
         - SourceTypeFeishuBot
+        - SourceTypeLarkBot
         - SourceTypeWechatBot
+        - SourceTypeWecomAIBot
         - SourceTypeWechatServiceBot
         - SourceTypeDiscordBot
         - SourceTypeWechatOfficialAccount
         - SourceTypeOpenAIAPI
+        - SourceTypeMcpServer
       produces:
       - application/json
       responses:
@@ -2946,310 +3700,18 @@ paths:
       summary: GetMessageFeedBackList
       tags:
       - Message
-  /api/v1/crawler/confluence/analysis_export_file:
+  /api/v1/crawler/export:
     post:
       consumes:
       - application/json
-      description: Analyze Confluence Export File
-      parameters:
-      - description: file
-        in: formData
-        name: file
-        required: true
-        type: file
-      - description: kb_id
-        in: formData
-        name: kb_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/domain.AnalysisConfluenceResp'
-                  type: array
-              type: object
-      summary: AnalysisConfluenceExportFile
-      tags:
-      - crawler
-  /api/v1/crawler/epub/convert:
-    post:
-      consumes:
-      - multipart/form-data
-      description: QpubConvert
-      parameters:
-      - description: file
-        in: formData
-        name: file
-        required: true
-        type: file
-      - description: kb_id
-        in: formData
-        name: kb_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/domain.EpubResp'
-              type: object
-      summary: QpubConvert
-      tags:
-      - crawler
-  /api/v1/crawler/feishu/get_doc:
-    post:
-      consumes:
-      - application/json
-      description: Get Docx in Feishu Spaces
-      parameters:
-      - description: Get Docx
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/domain.GetDocxReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/domain.GetDocxResp'
-                  type: array
-              type: object
-      summary: FeishuGetDocx
-      tags:
-      - crawler
-  /api/v1/crawler/feishu/list_doc:
-    post:
-      consumes:
-      - application/json
-      description: List Docx in Feishu Spaces
-      parameters:
-      - description: Search Docx
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/domain.SearchDocxReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/domain.SearchDocxResp'
-                  type: array
-              type: object
-      summary: FeishuListDoc
-      tags:
-      - crawler
-  /api/v1/crawler/feishu/list_spaces:
-    post:
-      consumes:
-      - application/json
-      description: List All Feishu Spaces
-      parameters:
-      - description: List Spaces
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/domain.GetSpaceListReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/domain.GetSpaceListResp'
-                  type: array
-              type: object
-      summary: FeishuListSpaces
-      tags:
-      - crawler
-  /api/v1/crawler/feishu/search_wiki:
-    post:
-      consumes:
-      - application/json
-      description: Search Wiki in Feishu Spaces
-      parameters:
-      - description: Search Wiki
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/domain.SearchWikiReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/domain.SearchWikiResp'
-                  type: array
-              type: object
-      summary: FeishuSearchWiki
-      tags:
-      - crawler
-  /api/v1/crawler/notion/get_doc:
-    post:
-      consumes:
-      - application/json
-      description: GetDocs
-      parameters:
-      - description: Get Docs
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/domain.GetDocsReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/domain.Page'
-                  type: array
-              type: object
-      summary: GetDocs
-      tags:
-      - crawler
-  /api/v1/crawler/notion/get_list:
-    post:
-      consumes:
-      - application/json
-      description: NotionGetList
-      parameters:
-      - description: Notion Get List
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/domain.NotnionGetListReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/domain.PageInfo'
-                  type: array
-              type: object
-      summary: NotionGetList
-      tags:
-      - crawler
-  /api/v1/crawler/parse_rss:
-    post:
-      consumes:
-      - application/json
-      description: Parse RSS
-      parameters:
-      - description: Parse URL
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/domain.ParseURLReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/domain.ParseURLResp'
-              type: object
-      summary: Parse RSS
-      tags:
-      - crawler
-  /api/v1/crawler/parse_sitemap:
-    post:
-      consumes:
-      - application/json
-      description: Parse Sitemap
-      parameters:
-      - description: Parse URL
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/domain.ParseURLReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/domain.ParseURLResp'
-              type: object
-      summary: Parse Sitemap
-      tags:
-      - crawler
-  /api/v1/crawler/scrape:
-    post:
-      consumes:
-      - application/json
-      description: Scrape
+      description: CrawlerExport
       parameters:
       - description: Scrape
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/domain.ScrapeReq'
+          $ref: '#/definitions/v1.CrawlerExportReq'
       produces:
       - application/json
       responses:
@@ -3260,27 +3722,23 @@ paths:
             - $ref: '#/definitions/domain.PWResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/domain.ScrapeResp'
+                  $ref: '#/definitions/v1.CrawlerExportResp'
               type: object
-      summary: Scrape
+      summary: CrawlerExport
       tags:
       - crawler
-  /api/v1/crawler/siyuan/analysis_export_file:
+  /api/v1/crawler/parse:
     post:
       consumes:
       - application/json
-      description: Analyze SiYuan Export File
+      description: 解析文档树
       parameters:
-      - description: file
-        in: formData
-        name: file
+      - description: Scrape
+        in: body
+        name: body
         required: true
-        type: file
-      - description: kb_id
-        in: formData
-        name: kb_id
-        required: true
-        type: string
+        schema:
+          $ref: '#/definitions/v1.CrawlerParseReq'
       produces:
       - application/json
       responses:
@@ -3291,29 +3749,23 @@ paths:
             - $ref: '#/definitions/domain.PWResponse'
             - properties:
                 data:
-                  items:
-                    $ref: '#/definitions/domain.SiYuanResp'
-                  type: array
+                  $ref: '#/definitions/v1.CrawlerParseResp'
               type: object
-      summary: AnalysisSiyuanExportFile
+      summary: 解析文档树
       tags:
       - crawler
-  /api/v1/crawler/wikijs/analysis_export_file:
-    post:
+  /api/v1/crawler/result:
+    get:
       consumes:
-      - multipart/form-data
-      description: AnalysisWikijsExportFile
+      - application/json
+      description: Retrieve the result of a previously started scraping task
       parameters:
-      - description: file
-        in: formData
-        name: file
+      - description: Crawler Result Request
+        in: body
+        name: body
         required: true
-        type: file
-      - description: kb_id
-        in: formData
-        name: kb_id
-        required: true
-        type: string
+        schema:
+          $ref: '#/definitions/v1.CrawlerResultReq'
       produces:
       - application/json
       responses:
@@ -3324,29 +3776,23 @@ paths:
             - $ref: '#/definitions/domain.PWResponse'
             - properties:
                 data:
-                  items:
-                    $ref: '#/definitions/domain.WikiJSResp'
-                  type: array
+                  $ref: '#/definitions/v1.CrawlerResultResp'
               type: object
-      summary: AnalysisWikijsExportFile
+      summary: Get Crawler Result
       tags:
       - crawler
-  /api/v1/crawler/yuque/analysis_export_file:
+  /api/v1/crawler/results:
     post:
       consumes:
       - application/json
-      description: Analyze Yuque Export File
+      description: Retrieve the results of a previously started scraping task
       parameters:
-      - description: file
-        in: formData
-        name: file
+      - description: Crawler Results Request
+        in: body
+        name: param
         required: true
-        type: file
-      - description: kb_id
-        in: formData
-        name: kb_id
-        required: true
-        type: string
+        schema:
+          $ref: '#/definitions/v1.CrawlerResultsReq'
       produces:
       - application/json
       responses:
@@ -3357,13 +3803,34 @@ paths:
             - $ref: '#/definitions/domain.PWResponse'
             - properties:
                 data:
-                  items:
-                    $ref: '#/definitions/domain.YuqueResp'
-                  type: array
+                  $ref: '#/definitions/v1.CrawlerResultsResp'
               type: object
-      summary: AnalysisYuqueExportFile
+      summary: Get Crawler Results
       tags:
       - crawler
+  /api/v1/creation/tab-complete:
+    post:
+      consumes:
+      - application/json
+      description: Tab-based document completion similar to AI coding's FIM (Fill
+        in Middle)
+      parameters:
+      - description: tab completion request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CompleteReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success
+          schema:
+            type: string
+      summary: Tab-based document completion
+      tags:
+      - creation
   /api/v1/creation/text:
     post:
       consumes:
@@ -3407,6 +3874,30 @@ paths:
           schema:
             $ref: '#/definitions/domain.ObjectUploadResp'
       summary: Upload File
+      tags:
+      - file
+  /api/v1/file/upload/anydoc:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload Anydoc File
+      parameters:
+      - description: File
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: File Path
+        in: formData
+        name: path
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.AnydocUploadResp'
+      summary: Upload Anydoc File
       tags:
       - file
   /api/v1/knowledge_base:
@@ -3763,6 +4254,27 @@ paths:
       summary: get model list
       tags:
       - model
+  /api/v1/model/mode-setting:
+    get:
+      consumes:
+      - application/json
+      description: get current model mode setting including mode, API key and chat
+        model
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/domain.ModelModeSetting'
+              type: object
+      summary: get model mode setting
+      tags:
+      - model
   /api/v1/model/provider/supported:
     post:
       consumes:
@@ -3788,6 +4300,33 @@ paths:
                   $ref: '#/definitions/domain.GetProviderModelListResp'
               type: object
       summary: get provider supported model list
+      tags:
+      - model
+  /api/v1/model/switch-mode:
+    post:
+      consumes:
+      - application/json
+      description: switch model mode between manual and auto
+      parameters:
+      - description: switch mode request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/domain.SwitchModeReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/domain.SwitchModeResp'
+              type: object
+      summary: switch mode
       tags:
       - model
   /api/v1/node:
@@ -4087,6 +4626,36 @@ paths:
       summary: Recommend Nodes
       tags:
       - node
+  /api/v1/node/restudy:
+    post:
+      consumes:
+      - application/json
+      description: 文档重新学习
+      operationId: v1-NodeRestudy
+      parameters:
+      - description: para
+        in: body
+        name: param
+        required: true
+        schema:
+          $ref: '#/definitions/v1.NodeRestudyReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/v1.NodeRestudyResp'
+              type: object
+      security:
+      - bearerAuth: []
+      summary: 文档重新学习
+      tags:
+      - Node
   /api/v1/node/summary:
     post:
       consumes:
@@ -4185,7 +4754,7 @@ paths:
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/domain.ConversationDistribution'
+                    $ref: '#/definitions/v1.StatConversationDistributionResp'
                   type: array
               type: object
       security:
@@ -4456,12 +5025,10 @@ paths:
       - application/json
       description: DeleteUser
       parameters:
-      - description: DeleteUser Request
-        in: body
-        name: body
+      - in: query
+        name: user_id
         required: true
-        schema:
-          $ref: '#/definitions/v1.DeleteUserReq'
+        type: string
       produces:
       - application/json
       responses:
@@ -4562,6 +5129,32 @@ paths:
       summary: GetAppInfo
       tags:
       - share_app
+  /share/v1/app/wechat/info:
+    get:
+      consumes:
+      - application/json
+      description: WechatAppInfo
+      parameters:
+      - description: kb id
+        in: header
+        name: X-KB-ID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/v1.WechatAppInfoResp'
+              type: object
+      summary: WechatAppInfo
+      tags:
+      - share_chat
   /share/v1/app/wechat/service/answer:
     get:
       consumes:
@@ -4820,6 +5413,33 @@ paths:
       summary: ChatMessage
       tags:
       - share_chat
+  /share/v1/chat/search:
+    post:
+      consumes:
+      - application/json
+      description: ChatSearch
+      parameters:
+      - description: request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/domain.ChatSearchReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/domain.ChatSearchResp'
+              type: object
+      summary: ChatSearch
+      tags:
+      - share_chat_search
   /share/v1/chat/widget:
     post:
       consumes:
@@ -4846,7 +5466,34 @@ paths:
             $ref: '#/definitions/domain.Response'
       summary: ChatWidget
       tags:
-      - share_chat
+      - Widget
+  /share/v1/chat/widget/search:
+    post:
+      consumes:
+      - application/json
+      description: WidgetSearch
+      parameters:
+      - description: Comment
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/domain.ChatSearchReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/domain.ChatSearchResp'
+              type: object
+      summary: WidgetSearch
+      tags:
+      - Widget
   /share/v1/comment:
     post:
       consumes:
@@ -4900,6 +5547,43 @@ paths:
       summary: GetCommentList
       tags:
       - share_comment
+  /share/v1/common/file/upload:
+    post:
+      consumes:
+      - multipart/form-data
+      description: 前台用户上传文件,目前只支持图片文件上传
+      operationId: share-FileUpload
+      parameters:
+      - description: kb id
+        in: header
+        name: X-KB-ID
+        required: true
+        type: string
+      - description: File
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: captcha_token
+        in: formData
+        name: captcha_token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/v1.FileUploadResp'
+              type: object
+      summary: 文件上传
+      tags:
+      - ShareFile
   /share/v1/conversation/detail:
     get:
       consumes:
@@ -4958,7 +5642,12 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/domain.Response'
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/v1.ShareNodeDetailResp'
+              type: object
       summary: GetNodeDetail
       tags:
       - share_node
@@ -4981,34 +5670,6 @@ paths:
           schema:
             $ref: '#/definitions/domain.Response'
       summary: GetNodeList
-      tags:
-      - share_node
-  /share/v1/node/recommend/list:
-    get:
-      consumes:
-      - application/json
-      description: 推荐卡片列表
-      parameters:
-      - description: kb id
-        in: header
-        name: X-KB-ID
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.Response'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/v1.RecommendNodeListItem'
-                  type: array
-              type: object
-      summary: 推荐卡片列表
       tags:
       - share_node
   /share/v1/openapi/github/callback:
@@ -5037,6 +5698,28 @@ paths:
                   $ref: '#/definitions/github_com_chaitin_panda-wiki_api_share_v1.GitHubCallbackResp'
               type: object
       summary: GitHub回调
+      tags:
+      - ShareOpenapi
+  /share/v1/openapi/lark/bot/{kb_id}:
+    post:
+      consumes:
+      - application/json
+      description: Lark机器人请求
+      operationId: v1-LarkBot
+      parameters:
+      - description: 知识库ID
+        in: path
+        name: kb_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.PWResponse'
+      summary: Lark机器人请求
       tags:
       - ShareOpenapi
   /share/v1/stat/page:

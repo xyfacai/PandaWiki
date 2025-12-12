@@ -1,11 +1,12 @@
-import { DomainKnowledgeBaseDetail } from '@/request/types';
 import { getApiProV1Prompt, postApiProV1Prompt } from '@/request/pro/Prompt';
+import { DomainKnowledgeBaseDetail } from '@/request/types';
+import { PROFESSION_VERSION_PERMISSION } from '@/constant/version';
+import { useAppSelector } from '@/store';
+import { message, Modal } from '@ctzhian/ui';
 import { Box, Slider, TextField } from '@mui/material';
 import { useEffect, useMemo, useState } from 'react';
-import { SettingCard, SettingCardItem, FormItem } from './Common';
 import { Controller, useForm } from 'react-hook-form';
-import { useAppSelector } from '@/store';
-import { message } from '@ctzhian/ui';
+import { FormItem, SettingCardItem } from './Common';
 
 interface CardAIProps {
   kb: DomainKnowledgeBaseDetail;
@@ -33,22 +34,46 @@ const CardAI = ({ kb }: CardAIProps) => {
   });
 
   const isPro = useMemo(() => {
-    return license.edition === 1 || license.edition === 2;
+    return PROFESSION_VERSION_PERMISSION.includes(license.edition!);
   }, [license]);
 
   useEffect(() => {
-    if (!kb.id || !isPro) return;
+    if (!kb.id || !PROFESSION_VERSION_PERMISSION.includes(license.edition!))
+      return;
     getApiProV1Prompt({ kb_id: kb.id! }).then(res => {
       setValue('content', res.content || '');
     });
   }, [kb, isPro]);
 
+  const onResetPrompt = () => {
+    Modal.confirm({
+      title: '提示',
+      content: '确定要重置为默认提示词吗？',
+      onOk: () => {
+        postApiProV1Prompt({
+          kb_id: kb.id!,
+          content: '',
+        }).then(() => {
+          getApiProV1Prompt({ kb_id: kb.id! }).then(res => {
+            setValue('content', res.content || '');
+          });
+        });
+      },
+    });
+  };
+
   return (
-    <SettingCard title='AI 设置'>
+    <Box
+      sx={{
+        width: 1000,
+        margin: 'auto',
+        pb: 4,
+      }}
+    >
       <SettingCardItem title='智能问答' isEdit={isEdit} onSubmit={onSubmit}>
         <FormItem
           vertical
-          tooltip={!isPro && '联创版和企业版可用'}
+          permission={PROFESSION_VERSION_PERMISSION}
           extra={
             <Box
               sx={{
@@ -57,10 +82,7 @@ const CardAI = ({ kb }: CardAIProps) => {
                 display: 'block',
                 cursor: 'pointer',
               }}
-              onClick={() => {
-                setValue('content', '');
-                setIsEdit(true);
-              }}
+              onClick={onResetPrompt}
             >
               重置为默认提示词
             </Box>
@@ -76,7 +98,7 @@ const CardAI = ({ kb }: CardAIProps) => {
                 fullWidth
                 disabled={!isPro}
                 multiline
-                rows={4}
+                rows={20}
                 placeholder='智能问答提示词'
                 onChange={e => {
                   field.onChange(e.target.value);
@@ -151,7 +173,7 @@ const CardAI = ({ kb }: CardAIProps) => {
           />
         </FormItem>
       </SettingCardItem>
-    </SettingCard>
+    </Box>
   );
 };
 

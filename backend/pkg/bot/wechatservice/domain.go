@@ -10,13 +10,15 @@ import (
 )
 
 type WechatServiceConfig struct {
-	Ctx            context.Context
-	CorpID         string
-	Token          string
-	EncodingAESKey string
-	kbID           string
-	Secret         string
-	logger         *log.Logger
+	Ctx             context.Context
+	CorpID          string
+	Token           string
+	EncodingAESKey  string
+	kbID            string
+	Secret          string
+	logger          *log.Logger
+	containKeywords []string
+	equalKeywords   []string
 	// db
 	WeRepo *pg.WechatRepository
 }
@@ -158,7 +160,14 @@ type TokenCache struct {
 	Mutex       sync.Mutex
 }
 
-var tokenCache *TokenCache = &TokenCache{}
+// Map-based token cache keyed by app credentials
+var tokenCacheMap = make(map[string]*TokenCache)
+var tokenCacheMapMutex = sync.Mutex{}
+
+// Generate a key for the token cache based on app credentials
+func getTokenCacheKey(kbID, secret string) string {
+	return kbID + ":" + secret
+}
 
 type UserImageCache struct {
 	ImageID     string

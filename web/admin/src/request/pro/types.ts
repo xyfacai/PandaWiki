@@ -39,21 +39,26 @@ export enum ConstsSourceType {
   SourceTypeWidget = "widget",
   SourceTypeDingtalkBot = "dingtalk_bot",
   SourceTypeFeishuBot = "feishu_bot",
+  SourceTypeLarkBot = "lark_bot",
   SourceTypeWechatBot = "wechat_bot",
+  SourceTypeWecomAIBot = "wecom_ai_bot",
   SourceTypeWechatServiceBot = "wechat_service_bot",
   SourceTypeDiscordBot = "discord_bot",
   SourceTypeWechatOfficialAccount = "wechat_official_account",
   SourceTypeOpenAIAPI = "openai_api",
+  SourceTypeMcpServer = "mcp_server",
 }
 
 /** @format int32 */
 export enum ConstsLicenseEdition {
   /** 开源版 */
   LicenseEditionFree = 0,
-  /** 联创版 */
-  LicenseEditionContributor = 1,
+  /** 专业版 */
+  LicenseEditionProfession = 1,
   /** 企业版 */
   LicenseEditionEnterprise = 2,
+  /** 商业版 */
+  LicenseEditionBusiness = 3,
 }
 
 export enum ConstsContributeType {
@@ -75,11 +80,6 @@ export interface DomainCommentModerateListReq {
 export interface DomainCreatePromptReq {
   content?: string;
   kb_id: string;
-}
-
-export interface DomainDeleteDocumentFeedbackReq {
-  /** @minItems 1 */
-  ids: string[];
 }
 
 export interface DomainDocumentFeedbackInfo {
@@ -109,8 +109,15 @@ export interface DomainDocumentFeedbackListItem {
 
 export interface DomainGetNodeReleaseDetailResp {
   content?: string;
+  creator_account?: string;
+  creator_id?: string;
+  editor_account?: string;
+  editor_id?: string;
   meta?: DomainNodeMeta;
   name?: string;
+  node_id?: string;
+  publisher_account?: string;
+  publisher_id?: string;
 }
 
 export interface DomainIPAddress {
@@ -128,16 +135,22 @@ export interface DomainLicenseResp {
 }
 
 export interface DomainNodeMeta {
+  content_type?: string;
   emoji?: string;
   summary?: string;
 }
 
 export interface DomainNodeReleaseListItem {
+  creator_account?: string;
+  creator_id?: string;
+  editor_account?: string;
+  editor_id?: string;
   id?: string;
   meta?: DomainNodeMeta;
   name?: string;
   node_id?: string;
-  /** release */
+  publisher_account?: string;
+  publisher_id?: string;
   release_id?: string;
   release_message?: string;
   release_name?: string;
@@ -360,11 +373,13 @@ export interface GithubComChaitinPandaWikiProApiContributeV1ContributeItem {
   contribute_name?: string;
   created_at?: string;
   id?: string;
+  ip_address?: DomainIPAddress;
   kb_id?: string;
   meta?: GithubComChaitinPandaWikiProApiContributeV1NodeMeta;
   node_id?: string;
   node_name?: string;
   reason?: string;
+  remote_ip?: string;
   status?: ConstsContributeStatus;
   type?: ConstsContributeType;
   updated_at?: string;
@@ -376,6 +391,7 @@ export interface GithubComChaitinPandaWikiProApiContributeV1ContributeListResp {
 }
 
 export interface GithubComChaitinPandaWikiProApiContributeV1NodeMeta {
+  content_type?: string;
   doc_width?: string;
   emoji?: string;
 }
@@ -442,6 +458,11 @@ export type GithubComChaitinPandaWikiProApiShareV1AuthLDAPResp = Record<
   any
 >;
 
+export type GithubComChaitinPandaWikiProApiShareV1AuthLogoutResp = Record<
+  string,
+  any
+>;
+
 export interface GithubComChaitinPandaWikiProApiShareV1AuthOAuthReq {
   kb_id?: string;
   redirect_url?: string;
@@ -452,6 +473,7 @@ export interface GithubComChaitinPandaWikiProApiShareV1AuthOAuthResp {
 }
 
 export interface GithubComChaitinPandaWikiProApiShareV1AuthWecomReq {
+  is_app?: boolean;
   kb_id?: string;
   redirect_url?: string;
 }
@@ -492,6 +514,7 @@ export type GithubComChaitinPandaWikiProApiShareV1OAuthCallbackResp = Record<
 export interface GithubComChaitinPandaWikiProApiShareV1SubmitContributeReq {
   captcha_token: string;
   content?: string;
+  content_type: "html" | "md";
   emoji?: string;
   name?: string;
   node_id?: string;
@@ -522,11 +545,6 @@ export interface GithubComChaitinPandaWikiProApiTokenV1CreateAPITokenReq {
   kb_id: string;
   name: string;
   permission: "full_control" | "doc_manage" | "data_operate";
-}
-
-export interface GithubComChaitinPandaWikiProApiTokenV1DeleteAPITokenReq {
-  id: string;
-  kb_id: string;
 }
 
 export interface GithubComChaitinPandaWikiProApiTokenV1UpdateAPITokenReq {
@@ -568,11 +586,14 @@ export interface GetApiProV1AuthGetParams {
     | "widget"
     | "dingtalk_bot"
     | "feishu_bot"
+    | "lark_bot"
     | "wechat_bot"
+    | "wecom_ai_bot"
     | "wechat_service_bot"
     | "discord_bot"
     | "wechat_official_account"
-    | "openai_api";
+    | "openai_api"
+    | "mcp_server";
 }
 
 export interface DeleteApiProV1AuthGroupDeleteParams {
@@ -618,6 +639,11 @@ export interface GetApiProV1ContributeListParams {
   status?: "pending" | "approved" | "rejected";
 }
 
+export interface DeleteApiProV1DocumentFeedbackParams {
+  /** @minItems 1 */
+  ids: string[];
+}
+
 export interface GetApiProV1DocumentListParams {
   kb_id: string;
   /** @min 1 */
@@ -628,6 +654,7 @@ export interface GetApiProV1DocumentListParams {
 
 export interface GetApiProV1NodeReleaseDetailParams {
   id: string;
+  kb_id: string;
 }
 
 export interface GetApiProV1NodeReleaseListParams {
@@ -640,14 +667,17 @@ export interface GetApiProV1PromptParams {
   kb_id: string;
 }
 
+export interface DeleteApiProV1TokenDeleteParams {
+  id: string;
+  kb_id: string;
+}
+
 export interface GetApiProV1TokenListParams {
   /** 知识库ID */
   kb_id: string;
 }
 
 export interface PostApiV1LicensePayload {
-  /** license edition */
-  license_edition: "contributor" | "enterprise";
   /** license type */
   license_type: "file" | "code";
   /**

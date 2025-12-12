@@ -1,8 +1,8 @@
 import { CheckCircle } from '@mui/icons-material';
-import { Box, Stack, Typography, useTheme } from '@mui/material';
-import { Icon } from '@ctzhian/ui';
+import { Box, Stack, Typography, useTheme, SxProps } from '@mui/material';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { IconShangchuan } from '@panda-wiki/icons';
 
 interface FileTextProps {
   file?: File;
@@ -11,6 +11,8 @@ interface FileTextProps {
   tip?: string;
   size?: number;
   disabled?: boolean;
+  sx?: SxProps;
+  textSx?: SxProps;
 }
 
 const FileText = ({
@@ -20,6 +22,8 @@ const FileText = ({
   tip,
   size,
   disabled,
+  sx,
+  textSx,
 }: FileTextProps) => {
   const theme = useTheme();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -84,6 +88,7 @@ const FileText = ({
           '&:hover': {
             borderColor: theme.palette.text.primary,
           },
+          ...sx,
         }}
         onClick={() => fileInputRef.current?.click()}
       >
@@ -92,10 +97,7 @@ const FileText = ({
           {dropFiles.length > 0 ? (
             <CheckCircle sx={{ color: 'success.main', fontSize: 20 }} />
           ) : (
-            <Icon
-              type='icon-shangchuan'
-              sx={{ fontSize: 20, color: 'text.disabled' }}
-            />
+            <IconShangchuan sx={{ fontSize: 20, color: 'text.disabled' }} />
           )}
           <Typography
             variant='body1'
@@ -104,6 +106,7 @@ const FileText = ({
               alignItems: 'center',
               justifyContent: 'center',
               color: disabled ? 'text.disabled' : 'text.primary',
+              ...textSx,
             }}
           >
             {dropFiles.length > 0 ? tip : tip || '点击或拖拽文件到区域内'}

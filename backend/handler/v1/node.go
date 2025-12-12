@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"errors"
+
 	"github.com/labstack/echo/v4"
 
 	v1 "github.com/chaitin/panda-wiki/api/node/v1"
@@ -45,6 +47,7 @@ func NewNodeHandler(
 	group.POST("/batch_move", h.BatchMoveNode)
 
 	group.GET("/recommend_nodes", h.RecommendNodes)
+	group.POST("/restudy", h.NodeRestudy)
 
 	// node permission
 	group.GET("/permission", h.NodePermission)
@@ -65,6 +68,12 @@ func NewNodeHandler(
 //	@Success		200		{object}	domain.PWResponse{data=map[string]string}
 //	@Router			/api/v1/node [post]
 func (h *NodeHandler) CreateNode(c echo.Context) error {
+	ctx := c.Request().Context()
+	authInfo := domain.GetAuthInfoFromCtx(ctx)
+	if authInfo == nil {
+		return h.NewResponseWithError(c, "authInfo not found in context", nil)
+	}
+
 	req := &domain.CreateNodeReq{}
 	if err := c.Bind(req); err != nil {
 		return h.NewResponseWithError(c, "request body is invalid", err)
@@ -72,18 +81,14 @@ func (h *NodeHandler) CreateNode(c echo.Context) error {
 	if err := c.Validate(req); err != nil {
 		return h.NewResponseWithError(c, "validate request body failed", err)
 	}
-	req.MaxNode = 300
-	if maxNode := c.Get("max_node"); maxNode != nil {
-		req.MaxNode = maxNode.(int)
-	}
 
-	userId, ok := h.auth.MustGetUserID(c)
-	if !ok {
-		return h.NewResponseWithError(c, "not found user", nil)
-	}
+	req.MaxNode = domain.GetBaseEditionLimitation(ctx).MaxNode
 
-	id, err := h.usecase.Create(c.Request().Context(), req, userId)
+	id, err := h.usecase.Create(c.Request().Context(), req, authInfo.UserId)
 	if err != nil {
+		if errors.Is(err, domain.ErrMaxNodeLimitReached) {
+			return h.NewResponseWithError(c, "已达到最大文档数量限制，请升级到更高版本", nil)
+		}
 		return h.NewResponseWithError(c, "create node failed", err)
 	}
 	return h.NewResponseWithData(c, map[string]any{
@@ -141,6 +146,7 @@ func (h *NodeHandler) GetNodeDetail(c echo.Context) error {
 
 	node, err := h.usecase.GetNodeByKBID(c.Request().Context(), req.ID, req.KbId, req.Format)
 	if err != nil {
+		h.logger.Error("get node by kb id failed", log.Error(err))
 		return h.NewResponseWithError(c, "get node detail failed", err)
 	}
 	return h.NewResponseWithData(c, node)
@@ -167,9 +173,6 @@ func (h *NodeHandler) NodeAction(c echo.Context) error {
 	}
 	ctx := c.Request().Context()
 	if err := h.usecase.NodeAction(ctx, req); err != nil {
-		if err == domain.ErrNodeParentIDInIDs {
-			return h.NewResponseWithError(c, "文件夹下有子文件，不能删除~", nil)
-		}
 		return h.NewResponseWithError(c, "node action failed", err)
 	}
 	return h.NewResponseWithData(c, nil)
@@ -187,6 +190,12 @@ func (h *NodeHandler) NodeAction(c echo.Context) error {
 //	@Success		200		{object}	domain.Response
 //	@Router			/api/v1/node/detail [put]
 func (h *NodeHandler) UpdateNodeDetail(c echo.Context) error {
+	ctx := c.Request().Context()
+	authInfo := domain.GetAuthInfoFromCtx(ctx)
+	if authInfo == nil {
+		return h.NewResponseWithError(c, "authInfo not found in context", nil)
+	}
+
 	req := &domain.UpdateNodeReq{}
 	if err := c.Bind(req); err != nil {
 		return h.NewResponseWithError(c, "request body is invalid", err)
@@ -194,14 +203,8 @@ func (h *NodeHandler) UpdateNodeDetail(c echo.Context) error {
 	if err := c.Validate(req); err != nil {
 		return h.NewResponseWithError(c, "validate request body failed", err)
 	}
-	ctx := c.Request().Context()
 
-	userId, ok := h.auth.MustGetUserID(c)
-	if !ok {
-		return h.NewResponseWithError(c, "not found user", nil)
-	}
-
-	if err := h.usecase.Update(ctx, req, userId); err != nil {
+	if err := h.usecase.Update(ctx, req, authInfo.UserId); err != nil {
 		return h.NewResponseWithError(c, "update node detail failed", err)
 	}
 	return h.NewResponseWithData(c, nil)
@@ -379,5 +382,34 @@ func (h *NodeHandler) NodePermissionEdit(c echo.Context) error {
 	if err != nil {
 		return h.NewResponseWithError(c, "update node permission failed", err)
 	}
+	return h.NewResponseWithData(c, nil)
+}
+
+// NodeRestudy 文档重新学习
+//
+//	@Tags			Node
+//	@Summary		文档重新学习
+//	@Description	文档重新学习
+//	@ID				v1-NodeRestudy
+//	@Accept			json
+//	@Produce		json
+//	@Security		bearerAuth
+//	@Param			param	body		v1.NodeRestudyReq	true	"para"
+//	@Success		200		{object}	domain.Response{data=v1.NodeRestudyResp}
+//	@Router			/api/v1/node/restudy [post]
+func (h *NodeHandler) NodeRestudy(c echo.Context) error {
+	var req v1.NodeRestudyReq
+	if err := c.Bind(&req); err != nil {
+		return h.NewResponseWithError(c, "request params is invalid", err)
+	}
+
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate request params failed", err)
+	}
+
+	if err := h.usecase.NodeRestudy(c.Request().Context(), &req); err != nil {
+		return h.NewResponseWithError(c, "node restudy failed", err)
+	}
+
 	return h.NewResponseWithData(c, nil)
 }

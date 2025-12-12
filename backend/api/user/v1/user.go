@@ -20,6 +20,7 @@ type UserInfoResp struct {
 	ID         string          `json:"id"`
 	Account    string          `json:"account"`
 	Role       consts.UserRole `json:"role"`
+	IsToken    bool            `json:"is_token"`
 	LastAccess *time.Time      `json:"last_access,omitempty"`
 	CreatedAt  time.Time       `json:"created_at"`
 }
@@ -54,5 +55,5 @@ type ResetPasswordReq struct {
 }
 
 type DeleteUserReq struct {
-	UserID string `json:"user_id" validate:"required"`
+	UserID string `json:"user_id" query:"user_id" validate:"required"`
 }

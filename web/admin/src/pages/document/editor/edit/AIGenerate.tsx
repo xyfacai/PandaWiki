@@ -24,10 +24,12 @@ const AIGenerate = ({
 
   const defaultEditor = useTiptap({
     editable: false,
+    baseUrl: window.__BASENAME__ || '',
   });
 
   const readEditor = useTiptap({
     editable: false,
+    baseUrl: window.__BASENAME__ || '',
   });
 
   const onGenerate = useCallback(() => {
@@ -42,18 +44,18 @@ const AIGenerate = ({
         data => {
           setContent(prev => {
             const newContent = prev + data;
-            readEditor.editor?.commands.setContent(newContent);
+            readEditor?.setContent(newContent);
             return newContent;
           });
         },
       );
     }
-  }, [selectText, sseClientRef.current, readEditor.editor]);
+  }, [selectText, sseClientRef.current, readEditor]);
 
   const onCancel = () => {
     sseClientRef.current?.unsubscribe();
-    defaultEditor.editor.commands.setContent('');
-    readEditor.editor.commands.setContent('');
+    defaultEditor?.setContent('');
+    readEditor?.setContent('');
     setContent('');
     onClose();
   };
@@ -70,12 +72,13 @@ const AIGenerate = ({
       url: '/api/v1/creation/text',
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('panda_wiki_token')}`,
       },
       onComplete: () => setLoading(false),
       onError: () => setLoading(false),
     });
     if (selectText) {
-      defaultEditor.editor.commands.setContent(selectText);
+      defaultEditor?.setContent(selectText);
       setTimeout(() => {
         onGenerate();
       }, 60);

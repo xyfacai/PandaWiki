@@ -169,34 +169,13 @@ const DocAnchor = ({ headings }: DocAnchorProps) => {
         zIndex: 5,
         top: 114,
         flexShrink: 0,
-        width: 264,
+        width: 240,
       }}
     >
-      {/* <Stack
-        direction={'row'}
-        alignItems={'center'}
-        gap={1}
-        sx={{
-          lineHeight: '32px',
-          fontSize: 14,
-          pb: 1,
-        }}
-      >
-        <IconToc sx={{ fontSize: 16, cursor: 'pointer' }} />
-        <Box
-          sx={{
-            lineHeight: '22px',
-            fontWeight: 'bold',
-          }}
-        >
-          内容大纲
-        </Box>
-      </Stack> */}
       {headings.length > 0 && (
         <Stack
           gap={'8px'}
           sx={{
-            pr: 3,
             maxHeight: 'calc(100vh - 164px)',
             overflowY: 'auto',
             overflowX: 'hidden',

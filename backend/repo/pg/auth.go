@@ -39,6 +39,7 @@ func (r *AuthRepo) GetAuthUserinfoByIDs(ctx context.Context, authIDs []uint) (ma
 	err := r.db.WithContext(ctx).Table("auths").
 		Select("id,user_info as auth_user_info").
 		Where("id IN (?) ", authIDs).
+		Where("source_type NOT IN (?)", consts.BotSourceTypes).
 		Find(&authUserInfo).Error
 	if err != nil {
 		return nil, err
@@ -299,8 +300,8 @@ func (r *AuthRepo) GetOrCreateAuth(ctx context.Context, auth *domain.Auth, sourc
 					return err
 				}
 
-				if int(count) >= licenseEdition.GetMaxAuth(sourceType) {
-					return fmt.Errorf("exceed max auth limit for kb %s, current count: %d, max limit: %d", auth.KBID, count, licenseEdition.GetMaxAuth(sourceType))
+				if int(count) >= domain.GetBaseEditionLimitation(ctx).MaxSSOUser {
+					return fmt.Errorf("exceed max auth limit for kb %s, current count: %d, max limit: %d", auth.KBID, count, domain.GetBaseEditionLimitation(ctx).MaxSSOUser)
 				}
 
 				auth.LastLoginTime = time.Now()

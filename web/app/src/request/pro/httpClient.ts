@@ -11,6 +11,7 @@
  */
 
 import {
+  getServerBasePath,
   getServerHeader,
   getServerPathname,
   getServerSearch,
@@ -85,7 +86,7 @@ const redirectToLogin = () => {
     location.href.replace(location.origin, ""),
   );
   const search = `redirect=${redirectAfterLogin}`;
-  const pathname = "/auth/login";
+  const pathname = `${window._BASE_PATH_ || ""}/auth/login`;
   window.location.href = [pathname, search]?.join("?");
 };
 
@@ -241,7 +242,7 @@ export class HttpClient<SecurityDataType = unknown> {
     }
 
     return this.customFetch(
-      `${baseUrl || this.baseUrl || ""}${path}${queryString ? `?${queryString}` : ""}`,
+      `${baseUrl || this.baseUrl || (typeof window !== "undefined" ? window._BASE_PATH_ : "")}${path}${queryString ? `?${queryString}` : ""}`,
       {
         ...requestParams,
         headers: {
@@ -262,13 +263,13 @@ export class HttpClient<SecurityDataType = unknown> {
       },
     ).then(async (response) => {
       if (response.status === 401) {
-        console.log("response 401:", response);
         if (typeof window === "undefined") {
           const pathname = await getServerPathname();
           if (!pathnameWhiteList.includes(pathname)) {
             const search = await getServerSearch();
+            const basePath = await getServerBasePath();
             redirect(
-              `/auth/login?redirect=${encodeURIComponent(pathname + search)}`,
+              `${basePath}/auth/login?redirect=${encodeURIComponent(pathname + search)}`,
             );
           }
           return;
