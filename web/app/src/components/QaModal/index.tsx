@@ -267,10 +267,7 @@ const QaModal: React.FC<QaModalProps> = () => {
             }}
           >
             <Box>
-              {!kbDetail?.settings?.conversation_setting
-                ?.copyright_hide_enabled &&
-                (kbDetail?.settings?.conversation_setting?.copyright_info ||
-                  '本网站由 PandaWiki 提供技术支持')}
+              {'Wiki'}
             </Box>
           </Typography>
         </Box>
