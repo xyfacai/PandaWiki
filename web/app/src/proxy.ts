@@ -98,8 +98,8 @@ const proxyShare = async (request: NextRequest) => {
     request.nextUrl.pathname + request.nextUrl.search,
     targetOrigin,
   );
-  // 构造 fetch 选项
-  const fetchHeaders = new Headers(request.headers);
+  // 构造 fetch 选项，只使用白名单中的请求头，避免带上如 transfer-encoding 等 hop-by-hop 头
+  const fetchHeaders = new Headers();
     // 只复制必要的请求头，避免复制可能导致问题的头字段
     const allowedHeaders = [
         'accept',
