@@ -124,6 +124,22 @@ const homeProxy = async (
   return NextResponse.next();
 };
 
+// hop-by-hop 头不可原样转发给 undici fetch，否则会抛 UND_ERR_INVALID_ARG
+// （常见于带 body 的 POST，如 /share/v1/chat/message）
+const HOP_BY_HOP_HEADERS = [
+  'connection',
+  'keep-alive',
+  'proxy-authenticate',
+  'proxy-authorization',
+  'proxy-connection',
+  'te',
+  'trailer',
+  'transfer-encoding',
+  'upgrade',
+  'host',
+  'content-length',
+] as const;
+
 const proxyShare = async (request: NextRequest, pathname?: string) => {
   // 转发到 process.env.TARGET
   const kb_id = request.headers.get('x-kb-id') || process.env.DEV_KB_ID || '';
@@ -135,6 +151,9 @@ const proxyShare = async (request: NextRequest, pathname?: string) => {
   );
   // 构造 fetch 选项
   const fetchHeaders = new Headers(request.headers);
+  for (const header of HOP_BY_HOP_HEADERS) {
+    fetchHeaders.delete(header);
+  }
   fetchHeaders.set('x-kb-id', kb_id);
 
   const hasBody = !['GET', 'HEAD'].includes(request.method);
@@ -146,9 +165,16 @@ const proxyShare = async (request: NextRequest, pathname?: string) => {
     ...(hasBody && { duplex: 'half' as const }),
   };
   const proxyRes = await fetch(targetUrl.toString(), fetchOptions);
+
+  // 响应侧同样剥离 hop-by-hop，避免下游重复/非法 transfer-encoding
+  const responseHeaders = new Headers(proxyRes.headers);
+  for (const header of HOP_BY_HOP_HEADERS) {
+    responseHeaders.delete(header);
+  }
+
   const nextRes = new NextResponse(proxyRes.body, {
     status: proxyRes.status,
-    headers: proxyRes.headers,
+    headers: responseHeaders,
     statusText: proxyRes.statusText,
   });
   return nextRes;
