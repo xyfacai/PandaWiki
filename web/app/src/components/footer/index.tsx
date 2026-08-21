@@ -10,7 +10,6 @@ import {
 } from '@panda-wiki/ui';
 
 export const FooterProvider = ({
-  showBrand = true,
   isDocPage = false,
   isWelcomePage = false,
 }: {
@@ -31,9 +30,7 @@ export const FooterProvider = ({
     <Footer
       mobile={mobile}
       catalogWidth={catalogWidth}
-      showBrand={showBrand}
       isDocPage={isDocPage}
-      logo='https://release.baizhi.cloud/panda-wiki/icon.png'
       docWidth={docWidth}
       footerSetting={
         footerSetting
@@ -56,11 +53,7 @@ export const FooterProvider = ({
   );
 };
 
-export const WelcomeFooter = ({
-  showBrand = true,
-}: {
-  showBrand?: boolean;
-}) => {
+export const WelcomeFooter = () => {
   const { mobile = false, catalogWidth, kbDetail } = useStore();
   const basePath = useBasePath();
   const footerSetting = kbDetail?.settings?.footer_settings;
@@ -69,9 +62,7 @@ export const WelcomeFooter = ({
     <WelcomeFooterComponent
       mobile={mobile}
       catalogWidth={catalogWidth}
-      showBrand={showBrand}
       isDocPage={false}
-      logo='https://release.baizhi.cloud/panda-wiki/icon.png'
       docWidth='full'
       footerSetting={
         footerSetting

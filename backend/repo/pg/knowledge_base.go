@@ -400,15 +400,6 @@ func (r *KnowledgeBaseRepository) CreateKnowledgeBase(ctx context.Context, maxKB
 						URL:      "https://ly.safepoint.cloud/XEyeWqL",
 						Variant:  "contained",
 					},
-					AppBtn{
-						ID:       uuid.New().String(),
-						Icon:     "",
-						ShowIcon: false,
-						Target:   "_blank",
-						Text:     "PandaWiki",
-						URL:      "https://pandawiki.docs.baizhi.cloud",
-						Variant:  "outlined",
-					},
 				},
 			},
 		}).Error; err != nil {

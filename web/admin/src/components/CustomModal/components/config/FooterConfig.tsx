@@ -9,8 +9,6 @@ import { setAppPreviewData } from '@/store/slices/config';
 import { DomainSocialMediaAccount } from '@/request/types';
 import Switch from '../basicComponents/Switch';
 import DragSocialInfo from '../basicComponents/DragSocialInfo';
-import VersionMask from '@/components/VersionMask';
-import { PROFESSION_VERSION_PERMISSION } from '@/constant/version';
 import { IconTianjia } from '@panda-wiki/icons';
 import {
   IconWeixingongzhonghao,
@@ -79,7 +77,6 @@ const FooterConfig = ({ data, setIsEdit, isEdit }: FooterConfigProps) => {
   const brand_desc = watch('brand_desc');
   const brand_logo = watch('brand_logo');
   const brand_groups = watch('brand_groups');
-  const show_brand_info = watch('show_brand_info');
   const social_media_accounts: DomainSocialMediaAccount[] = watch(
     'social_media_accounts',
   );
@@ -104,7 +101,7 @@ const FooterConfig = ({ data, setIsEdit, isEdit }: FooterConfigProps) => {
       brand_desc: source.footer_settings?.brand_desc || '',
       brand_logo: source.footer_settings?.brand_logo || '',
       brand_groups: source.footer_settings?.brand_groups || [],
-      show_brand_info: source.web_app_custom_style?.show_brand_info || false,
+      show_brand_info: false,
       social_media_accounts:
         source.web_app_custom_style?.social_media_accounts || [],
       footer_show_intro:
@@ -134,7 +131,7 @@ const FooterConfig = ({ data, setIsEdit, isEdit }: FooterConfigProps) => {
         },
         web_app_custom_style: {
           ...currentAppPreviewData.settings?.web_app_custom_style,
-          show_brand_info,
+          show_brand_info: false,
           social_media_accounts,
           footer_show_intro,
         },
@@ -149,7 +146,6 @@ const FooterConfig = ({ data, setIsEdit, isEdit }: FooterConfigProps) => {
     brand_logo,
     brand_groups,
     dispatch,
-    show_brand_info,
     social_media_accounts,
     footer_show_intro,
   ]);
@@ -478,64 +474,6 @@ const FooterConfig = ({ data, setIsEdit, isEdit }: FooterConfigProps) => {
               />
             )}
           />
-        </Stack>
-
-        <Stack direction={'column'} gap={2}>
-          <Box
-            sx={{
-              fontSize: 14,
-              lineHeight: '22px',
-              flexShrink: 0,
-              display: 'flex',
-              alignItems: 'center',
-              fontWeight: 600,
-              '&::before': {
-                content: '""',
-                display: 'inline-block',
-                width: 4,
-                height: 12,
-                bgcolor: '#3248F2',
-                borderRadius: '2px',
-                mr: 1,
-              },
-            }}
-          >
-            PandaWiki 版权信息
-          </Box>
-          <VersionMask
-            permission={PROFESSION_VERSION_PERMISSION}
-            wrapperSx={{ px: 2 }}
-            sx={{ inset: '-8px 0' }}
-          >
-            <Controller
-              control={control}
-              name='show_brand_info'
-              render={({ field }) => (
-                <Stack direction={'row'}>
-                  <Box
-                    sx={{
-                      fontSize: 12,
-                      lineHeight: '20px',
-                      flexShrink: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                  >
-                    展示 PandaWiki 版权信息
-                  </Box>
-                  <Switch
-                    sx={{ marginLeft: 'auto' }}
-                    {...field}
-                    checked={field?.value === false ? false : true}
-                    onChange={e => {
-                      field.onChange(e.target.checked);
-                      setIsEdit(true);
-                    }}
-                  ></Switch>
-                </Stack>
-              )}
-            />
-          </VersionMask>
         </Stack>
       </Stack>
     </>
